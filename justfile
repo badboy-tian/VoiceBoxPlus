@@ -224,11 +224,11 @@ dev: _ensure-venv _ensure-sidecar
     set -euo pipefail
 
     backend_pid=""
-    if curl -sf http://127.0.0.1:17493/health > /dev/null 2>&1; then
-        echo "Backend already running on http://localhost:17493"
+    if curl -sf http://127.0.0.1:17594/health > /dev/null 2>&1; then
+        echo "Backend already running on http://localhost:17594"
     else
-        echo "Starting backend on http://localhost:17493 ..."
-        {{ venv_bin }}/uvicorn backend.main:app --reload --port 17493 &
+        echo "Starting backend on http://localhost:17594 ..."
+        {{ venv_bin }}/uvicorn backend.main:app --reload --port 17594 &
         backend_pid=$!
         sleep 2
     fi
@@ -241,9 +241,9 @@ dev: _ensure-venv _ensure-sidecar
 [windows]
 dev: _ensure-venv _ensure-sidecar
     $backendJob = $null; \
-    try { $null = Invoke-WebRequest -Uri "http://127.0.0.1:17493/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop; Write-Host "Backend already running on http://localhost:17493" } catch { \
-        Write-Host "Starting backend on http://localhost:17493 ..."; \
-        $backendJob = Start-Process -PassThru -NoNewWindow -FilePath "{{ python }}" -ArgumentList "-m","uvicorn","backend.main:app","--reload","--port","17493"; \
+    try { $null = Invoke-WebRequest -Uri "http://127.0.0.1:17594/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop; Write-Host "Backend already running on http://localhost:17594" } catch { \
+        Write-Host "Starting backend on http://localhost:17594 ..."; \
+        $backendJob = Start-Process -PassThru -NoNewWindow -FilePath "{{ python }}" -ArgumentList "-m","uvicorn","backend.main:app","--reload","--port","17594"; \
         Start-Sleep -Seconds 2; \
     }; \
     Write-Host "Starting Tauri desktop app..."; \
@@ -252,11 +252,11 @@ dev: _ensure-venv _ensure-sidecar
 # Start backend only
 [unix]
 dev-backend: _ensure-venv
-    {{ venv_bin }}/uvicorn backend.main:app --reload --port 17493
+    {{ venv_bin }}/uvicorn backend.main:app --reload --port 17594
 
 [windows]
 dev-backend: _ensure-venv
-    & "{{ python }}" -m uvicorn backend.main:app --reload --port 17493
+    & "{{ python }}" -m uvicorn backend.main:app --reload --port 17594
 
 # Start Tauri desktop app only (backend must be running separately)
 [unix]
@@ -274,11 +274,11 @@ dev-web: _ensure-venv
     set -euo pipefail
 
     backend_pid=""
-    if curl -sf http://127.0.0.1:17493/health > /dev/null 2>&1; then
-        echo "Backend already running on http://localhost:17493"
+    if curl -sf http://127.0.0.1:17594/health > /dev/null 2>&1; then
+        echo "Backend already running on http://localhost:17594"
     else
-        echo "Starting backend on http://localhost:17493 ..."
-        {{ venv_bin }}/uvicorn backend.main:app --reload --port 17493 &
+        echo "Starting backend on http://localhost:17594 ..."
+        {{ venv_bin }}/uvicorn backend.main:app --reload --port 17594 &
         backend_pid=$!
         sleep 2
     fi
@@ -290,9 +290,9 @@ dev-web: _ensure-venv
 [windows]
 dev-web: _ensure-venv
     $backendJob = $null; \
-    try { $null = Invoke-WebRequest -Uri "http://127.0.0.1:17493/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop; Write-Host "Backend already running on http://localhost:17493" } catch { \
-        Write-Host "Starting backend on http://localhost:17493 ..."; \
-        $backendJob = Start-Process -PassThru -NoNewWindow -FilePath "{{ python }}" -ArgumentList "-m","uvicorn","backend.main:app","--reload","--port","17493"; \
+    try { $null = Invoke-WebRequest -Uri "http://127.0.0.1:17594/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop; Write-Host "Backend already running on http://localhost:17594" } catch { \
+        Write-Host "Starting backend on http://localhost:17594 ..."; \
+        $backendJob = Start-Process -PassThru -NoNewWindow -FilePath "{{ python }}" -ArgumentList "-m","uvicorn","backend.main:app","--reload","--port","17594"; \
         Start-Sleep -Seconds 2; \
     }; \
     Write-Host "Starting web app..."; \
@@ -471,11 +471,11 @@ generate-api:
 # Open API docs in browser
 [unix]
 docs:
-    open http://localhost:17493/docs 2>/dev/null || xdg-open http://localhost:17493/docs
+    open http://localhost:17594/docs 2>/dev/null || xdg-open http://localhost:17594/docs
 
 [windows]
 docs:
-    Start-Process "http://localhost:17493/docs"
+    Start-Process "http://localhost:17594/docs"
 
 # Tail backend logs
 [unix]

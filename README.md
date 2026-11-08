@@ -3,7 +3,7 @@
 
 **A local desktop voice studio for designing voices and producing expressive speech.**
 
-English · [简体中文](README.zh-CN.md)
+English · [简体中文](README.zh-CN.md) · [Download](https://github.com/badboy-tian/VoiceBoxPlus/releases/latest) · [Getting started](docs/getting-started.md)
 
 VoiceBoxPlus is an independent fork of [Voicebox](https://github.com/jamiepine/voicebox), created by Jamie Pine and the Voicebox contributors. It builds on their Tauri desktop app and Python backend, with a focus on Qwen VoiceDesign, reusable voice previews, and a smoother Chinese voiceover workflow. This is a community derivative, not an official Voicebox release.
 
@@ -33,6 +33,10 @@ Use delivery presets for tone, emotion, and pace, or write your own instructions
 
 ![Editing a script with separate tone, emotion, and pace presets](.github/assets/voiceboxplus/script-editing.png)
 
+## Install
+
+Download a compiled installer for Apple Silicon Mac, Intel Mac, Windows x64, or Linux x64 from [Releases](https://github.com/badboy-tian/VoiceBoxPlus/releases/latest). No compiler or Python installation is required. Open **Quick start** to download the recommended model and choose one of the 16 built-in Chinese presenter templates. See the [installation and voice design guide](docs/getting-started.md), including signing status and system requirements.
+
 ## Run the desktop app from source
 
 The changes in this fork have been tested locally on **macOS with Apple Silicon**. Upstream also includes Windows and Linux support; this fork’s changes have not yet been verified on those platforms. The screenshots show the native Tauri desktop app.
@@ -57,7 +61,7 @@ Start the desktop app in another:
 just dev-frontend
 ```
 
-This fork uses port **17594**. The inherited `just dev` / `bun run dev:server` shortcuts still use the upstream port; use the commands above. Models are downloaded on first use, so initial generation requires network access and can take longer.
+This fork uses port **17594**. The `just dev` and `bun run dev:server` shortcuts also use this port. Models are downloaded on first use, so initial generation requires network access and can take longer.
 
 To build a desktop bundle after setup:
 
@@ -65,11 +69,11 @@ To build a desktop bundle after setup:
 just build
 ```
 
-An upstream download does **not** include VoiceBoxPlus changes. This README does not claim that a signed installer is available for this fork; use this repository’s source and release assets when published.
+An upstream download does **not** include VoiceBoxPlus changes. Our community installers are not Apple-notarized or Windows Authenticode-signed; see the release notes before installation.
 
 ## Import the presenter templates
 
-With the backend running:
+In the App, use **Quick start** to add a template and generate its preview. For developers who want to import all templates, with the backend running:
 
 ```bash
 backend/venv/bin/python scripts/seed-designed-voices.py --url http://127.0.0.1:17594

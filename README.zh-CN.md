@@ -3,7 +3,7 @@
 
 **本地运行的桌面 AI 配音工作室：设计音色、试听声音、调整表达、迭代台词。**
 
-[English](README.md) · 简体中文
+[English](README.md) · 简体中文 · [下载安装](https://github.com/badboy-tian/VoiceBoxPlus/releases/latest) · [新手教程](docs/getting-started.zh-CN.md)
 
 VoiceBoxPlus 基于 Jamie Pine 与社区开发的 **[Voicebox](https://github.com/jamiepine/voicebox)** 二次开发，沿用 Tauri 桌面端与 Python 后端，重点完善 Qwen VoiceDesign 音色设计和中文配音工作流。本项目为独立社区分支，并非 Voicebox 官方版本。
 
@@ -33,6 +33,10 @@ VoiceBoxPlus 基于 Jamie Pine 与社区开发的 **[Voicebox](https://github.co
 
 ![编辑台词界面与独立的语气、情感、节奏预设](.github/assets/voiceboxplus/script-editing.png)
 
+## 下载安装
+
+从 [Releases](https://github.com/badboy-tian/VoiceBoxPlus/releases/latest) 下载 Apple Silicon Mac、Intel Mac、Windows x64 或 Linux x64 的编译安装包，无需自行编译或安装 Python。进入 App 的「入门与模板」，按引导下载推荐模型，即可添加内置主播模板或自定义音色。完整步骤与签名状态见 [安装和音色设计教程](docs/getting-started.zh-CN.md)。
+
 ## 从源码运行桌面 App
 
 本分支已在 **Apple Silicon macOS** 本地验证。上游包含 Windows、Linux 支持，但本分支的修改尚未在这些平台完成验证。以上截图均来自 Tauri 桌面 App。
@@ -57,7 +61,7 @@ backend/venv/bin/python -m backend.main --host 127.0.0.1 --port 17594
 just dev-frontend
 ```
 
-本分支使用 **17594** 端口。继承的 `just dev`、`bun run dev:server` 快捷命令仍使用上游端口，请使用上述启动方式。首次使用模型需要联网下载，首次生成也可能因加载模型而较慢。
+本分支使用 **17594** 端口。`just dev`、`bun run dev:server` 快捷命令也使用此端口。首次使用模型需要联网下载，首次生成也可能因加载模型而较慢。
 
 完成依赖安装后，构建桌面安装包：
 
@@ -65,11 +69,11 @@ just dev-frontend
 just build
 ```
 
-上游发布的安装包不包含本项目改动。本 README 不承诺本分支已有签名安装包；请使用本仓库源码，以及后续在本仓库发布的构建产物。
+上游安装包不包含本项目改动。本社区安装包尚未提供 Apple 公证或 Windows 开发者证书签名，请先阅读 Release 安装说明。
 
 ## 导入主播模板
 
-后端运行时执行：
+普通用户可直接在 App 的「入门与模板」中选择音色并生成试音。开发者如需一次导入全部模板，可在后端运行时执行：
 
 ```bash
 backend/venv/bin/python scripts/seed-designed-voices.py --url http://127.0.0.1:17594

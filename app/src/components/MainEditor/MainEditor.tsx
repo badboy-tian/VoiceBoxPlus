@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
+import { GettingStarted } from '@/components/VoiceProfiles/GettingStarted';
 import { ProfileList } from '@/components/VoiceProfiles/ProfileList';
 
 import { useImportProfile } from '@/lib/hooks/useProfiles';
@@ -86,7 +87,9 @@ export function MainEditor() {
           <div className="flex items-center justify-between mb-4 px-1">
             {/* 仅更换品牌显示名，保留原有标识以兼容已保存的数据。 */}
             <h2 className="text-2xl font-bold">VoiceBoxPlus</h2>
-            <div className="flex gap-2">
+            {/* 新手入口始终可见，已有用户也能按需添加模板。 */}
+            <div className="flex flex-wrap justify-end gap-2">
+              <GettingStarted />
               <Button variant="outline" onClick={handleImportClick}>
                 <Upload className="mr-2 h-4 w-4" />
                 {t('main.importVoice')}
