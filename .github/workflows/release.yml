@@ -57,6 +57,8 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: tauri/src-tauri -> target
+          # 打包工具下载失败时也保留已编译依赖，重试无需从头编译。
+          cache-on-failure: true
       - name: Linux system dependencies
         if: runner.os == 'Linux'
         run: |
@@ -123,7 +125,15 @@ jobs:
           # 无证书时明确生成未公证包，不借用上游签名或自动更新密钥。
           APPLE_SIGNING_IDENTITY: '-'
           NO_STRIP: 'true'
-        run: bun run tauri build --target '${{ matrix.target }}' --bundles '${{ matrix.bundles }}'
+        # Tauri 会联网下载 NSIS 等打包工具；短暂的 504 不应使整轮发布直接失败。
+        run: |
+          for attempt in 1 2 3; do
+            if bun run tauri build --target '${{ matrix.target }}' --bundles '${{ matrix.bundles }}'; then
+              exit 0
+            fi
+            if [[ "$attempt" == 3 ]]; then exit 1; fi
+            sleep 15
+          done
       - name: Collect installer and checksum
         run: python scripts/collect-release.py '${{ matrix.name }}'
       - uses: actions/upload-artifact@v4
