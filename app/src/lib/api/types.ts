@@ -14,6 +14,8 @@ export interface VoiceProfileCreate {
   default_engine?: string;
   /** Free-form character prompt used by compose and the `/generate` personality-rewrite path. */
   personality?: string;
+  // 文案持久化到音色档案，保存时用于重建固定试音。
+  preview_text?: string;
 }
 
 export interface VoiceProfileResponse {
@@ -29,6 +31,11 @@ export interface VoiceProfileResponse {
   design_prompt?: string;
   default_engine?: string;
   personality?: string | null;
+  // 独立试音的状态与版本用于禁用未就绪按钮，并避免音频缓存串用。
+  preview_text?: string;
+  preview_status?: 'missing' | 'generating' | 'ready' | 'failed';
+  preview_revision?: string;
+  preview_error?: string;
   generation_count: number;
   sample_count: number;
   created_at: string;
@@ -90,6 +97,12 @@ export interface GenerationRequest {
 }
 
 export interface GenerationVersionResponse {
+  // 版本台词随音频一起保存，失败版本仍保留草稿。
+  text?: string | null;
+  instruct?: string | null;
+  duration?: number | null;
+  status?: 'completed' | 'generating' | 'failed';
+  error?: string | null;
   id: string;
   generation_id: string;
   label: string;

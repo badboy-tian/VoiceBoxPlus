@@ -264,6 +264,7 @@
       "system": "Áudio do Sistema"
     },
     "fields": {
+      "previewText": "Texto de prévia",
       "engine": "Motor",
       "voice": "Voz",
       "name": "Nome",
@@ -292,6 +293,7 @@
       "createProfile": "Criar Perfil"
     },
     "validation": {
+      "previewTextRequired": "Digite um texto para ouvir a voz.",
       "nameRequired": "O nome é obrigatório",
       "referenceRequired": "O texto de referência é obrigatório ao adicionar uma amostra",
       "sampleRequired": "A amostra de áudio é obrigatória",
@@ -406,6 +408,7 @@
   },
   "profiles": {
     "card": {
+      "preview": "Ouvir {{name}}",
       "noDescription": "Sem descrição",
       "designed": "projetada",
       "export": "Exportar perfil",
@@ -413,6 +416,14 @@
       "delete": "Excluir perfil",
       "selectLabel": "{{name}}, {{language}}. Selecionar como voz para a geração.",
       "selectLabelSelected": "{{name}}, {{language}}. Selecionada como voz para a geração."
+    },
+    "filters": {
+      "label": "Tipo de voz",
+      "all": "Todas",
+      "cloned": "Clonadas",
+      "designed": "Criadas",
+      "preset": "Predefinidas",
+      "empty": "Ainda não há vozes nesta categoria."
     },
     "list": {
       "errorLoading": "Erro ao carregar perfis: {{message}}",
@@ -698,6 +709,16 @@
       "sourcePlaceholder": "Selecione a versão de origem",
       "apply": "Aplicar",
       "applying": "Aplicando…"
+    },
+    "edit": {
+      "title": "Edit text & generate",
+      "text": "Text",
+      "instruct": "Delivery instruction",
+      "submit": "Generate new version",
+      "generating": "Generating…",
+      "failed": "Failed",
+      "retry": "Edit & retry",
+      "active": "Current"
     }
   },
   "generation": {
@@ -717,7 +738,35 @@
       "show": "Mostrar instruções de entrega",
       "hide": "Ocultar instruções de entrega",
       "tooltip": "Instruções de entrega (tom, emoção, ritmo)",
-      "placeholder": "Instruções de entrega — ex.: Fale devagar e com calor, Autoritário e claro…"
+      "placeholder": "Instruções de entrega — ex.: Fale devagar e com calor, Autoritário e claro…",
+      "presets": {
+        "tone": "Tone",
+        "emotion": "Emotion",
+        "pace": "Pace",
+        "none": "Unspecified",
+        "natural": "Natural",
+        "friendly": "Friendly",
+        "gentle": "Gentle",
+        "professional": "Professional",
+        "storytelling": "Storytelling",
+        "whisper": "Whisper",
+        "confident": "Confident",
+        "playful": "Playful",
+        "calm": "Calm",
+        "happy": "Happy",
+        "excited": "Excited",
+        "sad": "Sad",
+        "angry": "Angry",
+        "surprised": "Surprised",
+        "serious": "Serious",
+        "comforting": "Comforting",
+        "steady": "Moderate",
+        "slow": "Slow",
+        "brisk": "Brisk",
+        "pauses": "Clear pauses",
+        "crisp": "Crisp",
+        "expressive": "Expressive"
+      }
     },
     "voiceSelector": {
       "placeholder": "Selecione uma voz…"

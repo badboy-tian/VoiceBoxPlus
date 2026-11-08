@@ -26,6 +26,8 @@ export interface ProfileFormDraft {
   voiceSource?: 'clone' | 'builtin' | 'design';
   /** Voice description for a designed profile. */
   designPrompt?: string;
+  // 关闭新增窗口后保留用户修改的试听文案。
+  previewText?: string;
   // Note: File objects can't be persisted, so we store metadata
   sampleFileName?: string;
   sampleFileType?: string;

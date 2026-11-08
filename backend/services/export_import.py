@@ -87,6 +87,8 @@ def export_profile_to_zip(profile_id: str, db: Session) -> bytes:
                 "name": profile.name,
                 "description": profile.description,
                 "language": profile.language,
+                # 导出后再次导入时保留自定义试音内容。
+                "preview_text": profile.preview_text,
             },
             "has_avatar": has_avatar,
         }
@@ -173,6 +175,7 @@ async def import_profile_from_zip(file_bytes: bytes, db: Session) -> VoiceProfil
                 name=unique_name,
                 description=profile_data.get("description"),
                 language=profile_data.get("language", "en"),
+                preview_text=profile_data.get("preview_text"),
             )
             
             profile = await create_profile(profile_create, db)
@@ -269,7 +272,8 @@ def export_generation_to_zip(generation_id: str, db: Session) -> bytes:
     # Get all versions for this generation
     versions = (
         db.query(DBGenerationVersion)
-        .filter_by(generation_id=generation_id)
+        # 失败稿没有音频，不应作为音频资源写入压缩包。
+        .filter_by(generation_id=generation_id, status="completed")
         .order_by(DBGenerationVersion.created_at)
         .all()
     )
@@ -291,6 +295,8 @@ def export_generation_to_zip(generation_id: str, db: Session) -> bytes:
                 "is_default": v.is_default,
                 "effects_chain": effects_chain,
                 "filename": v_path.name,
+                # 每个声音版本都有独立台词，导出时保留对应关系。
+                "text": v.text, "instruct": v.instruct, "duration": v.duration,
             })
 
         manifest = {
@@ -302,6 +308,7 @@ def export_generation_to_zip(generation_id: str, db: Session) -> bytes:
                 "duration": generation.duration,
                 "seed": generation.seed,
                 "instruct": generation.instruct,
+                "engine": generation.engine, "model_size": generation.model_size,
                 "created_at": generation.created_at.isoformat(),
             },
             "profile": {
@@ -432,12 +439,31 @@ async def import_generation_from_zip(file_bytes: bytes, db: Session) -> dict:
                     duration=generation_data["duration"],
                     seed=generation_data.get("seed"),
                     instruct=generation_data.get("instruct"),
+                    engine=generation_data.get("engine", "qwen"), model_size=generation_data.get("model_size"),
                     created_at=datetime.now(UTC),
                 )
                 
                 db.add(db_generation)
                 db.commit()
                 db.refresh(db_generation)
+
+                # 包含版本的归档必须按各自台词还原，不能把所有音频都标成最新稿。
+                from . import versions as versions_mod
+                for entry in manifest_data.get("versions", []):
+                    filename = Path(entry["filename"]).name
+                    member = f"audio/{filename}"
+                    if member not in namelist:
+                        continue
+                    destination = generations_dir / f"{new_generation_id}_{__import__('uuid').uuid4()}.wav"
+                    destination.write_bytes(zip_file.read(member))
+                    versions_mod.create_version(
+                        new_generation_id, entry.get("label", "Version"),
+                        config.to_storage_path(destination), db,
+                        effects_chain=entry.get("effects_chain"), is_default=entry.get("is_default", False),
+                        text=entry.get("text") or generation_data["text"],
+                        instruct=entry.get("instruct", generation_data.get("instruct")),
+                        duration=entry.get("duration"),
+                    )
                 
                 return {
                     "id": db_generation.id,

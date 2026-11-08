@@ -7,6 +7,9 @@ export function useProfiles() {
   return useQuery({
     queryKey: ['profiles'],
     queryFn: () => apiClient.listProfiles(),
+    // 保存后后台串行准备试音，只在有任务时刷新卡片状态。
+    refetchInterval: (query) =>
+      query.state.data?.some((profile) => profile.preview_status === 'generating') ? 2000 : false,
   });
 }
 
@@ -80,13 +83,9 @@ export function useAddSample() {
       file: File;
       referenceText: string;
     }) => apiClient.addProfileSample(profileId, file, referenceText),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['profiles', variables.profileId, 'samples'],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['profiles', variables.profileId],
-      });
+    onSuccess: () => {
+      // 样本落盘后试听才进入生成状态，同时刷新列表以启动状态轮询。
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
     },
   });
 }

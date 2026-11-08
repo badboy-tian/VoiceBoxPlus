@@ -264,6 +264,7 @@
       "system": "Audio di sistema"
     },
     "fields": {
+      "previewText": "Testo di prova",
       "engine": "Motore",
       "voice": "Voce",
       "name": "Nome",
@@ -292,6 +293,7 @@
       "createProfile": "Crea profilo"
     },
     "validation": {
+      "previewTextRequired": "Inserisci un testo per ascoltare la voce.",
       "nameRequired": "Il nome è richiesto",
       "referenceRequired": "Il testo di riferimento è richiesto quando si aggiunge un campione",
       "sampleRequired": "Il campione audio è richiesto",
@@ -406,6 +408,7 @@
   },
   "profiles": {
     "card": {
+      "preview": "Ascolta {{name}}",
       "noDescription": "Nessuna descrizione",
       "designed": "progettato",
       "export": "Esporta profilo",
@@ -413,6 +416,14 @@
       "delete": "Elimina profilo",
       "selectLabel": "{{name}}, {{language}}. Seleziona come voce per la generazione.",
       "selectLabelSelected": "{{name}}, {{language}}. Selezionato come voce per la generazione."
+    },
+    "filters": {
+      "label": "Tipo di voce",
+      "all": "Tutte",
+      "cloned": "Clonate",
+      "designed": "Progettate",
+      "preset": "Predefinite",
+      "empty": "Nessuna voce in questa categoria."
     },
     "list": {
       "errorLoading": "Errore durante il caricamento dei profili: {{message}}",
@@ -698,6 +709,16 @@
       "sourcePlaceholder": "Seleziona la versione sorgente",
       "apply": "Applica",
       "applying": "Applicazione in corso…"
+    },
+    "edit": {
+      "title": "Edit text & generate",
+      "text": "Text",
+      "instruct": "Delivery instruction",
+      "submit": "Generate new version",
+      "generating": "Generating…",
+      "failed": "Failed",
+      "retry": "Edit & retry",
+      "active": "Current"
     }
   },
   "generation": {
@@ -717,7 +738,35 @@
       "show": "Mostra istruzioni di pronuncia",
       "hide": "Nascondi istruzioni di pronuncia",
       "tooltip": "Istruzioni di pronuncia (tono, emozione, ritmo)",
-      "placeholder": "Istruzioni di pronuncia — es. Parla lentamente con calore, Autorevole e chiaro…"
+      "placeholder": "Istruzioni di pronuncia — es. Parla lentamente con calore, Autorevole e chiaro…",
+      "presets": {
+        "tone": "Tone",
+        "emotion": "Emotion",
+        "pace": "Pace",
+        "none": "Unspecified",
+        "natural": "Natural",
+        "friendly": "Friendly",
+        "gentle": "Gentle",
+        "professional": "Professional",
+        "storytelling": "Storytelling",
+        "whisper": "Whisper",
+        "confident": "Confident",
+        "playful": "Playful",
+        "calm": "Calm",
+        "happy": "Happy",
+        "excited": "Excited",
+        "sad": "Sad",
+        "angry": "Angry",
+        "surprised": "Surprised",
+        "serious": "Serious",
+        "comforting": "Comforting",
+        "steady": "Moderate",
+        "slow": "Slow",
+        "brisk": "Brisk",
+        "pauses": "Clear pauses",
+        "crisp": "Crisp",
+        "expressive": "Expressive"
+      }
     },
     "voiceSelector": {
       "placeholder": "Seleziona una voce…"

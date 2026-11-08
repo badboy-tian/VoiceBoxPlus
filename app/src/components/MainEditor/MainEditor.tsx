@@ -84,7 +84,8 @@ export function MainEditor() {
 
         <div className="absolute top-0 left-0 right-0 z-10">
           <div className="flex items-center justify-between mb-4 px-1">
-            <h2 className="text-2xl font-bold">Voicebox</h2>
+            {/* 仅更换品牌显示名，保留原有标识以兼容已保存的数据。 */}
+            <h2 className="text-2xl font-bold">VoiceBoxPlus</h2>
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleImportClick}>
                 <Upload className="mr-2 h-4 w-4" />

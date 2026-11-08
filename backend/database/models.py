@@ -31,6 +31,8 @@ class VoiceProfile(Base):
     language = Column(String, default="en")
     avatar_path = Column(String, nullable=True)
     effects_chain = Column(Text, nullable=True)
+    # 文案随档案保存；旧档案为空时继续使用对应语言的默认文案。
+    preview_text = Column(Text, nullable=True)
 
     # Voice type system — added v0.3.x
     voice_type = Column(String, default="cloned")  # "cloned" | "preset" | "designed"
@@ -136,6 +138,13 @@ class GenerationVersion(Base):
     label = Column(String, nullable=False)
     audio_path = Column(String, nullable=False)
     effects_chain = Column(Text, nullable=True)
+    # 台词与指令属于具体音频版本，切换版本时必须一起恢复。
+    text = Column(Text, nullable=True)
+    instruct = Column(Text, nullable=True)
+    duration = Column(Float, nullable=True)
+    # 编辑任务独立于原记录状态，失败或生成中都不能使原音频不可播放。
+    status = Column(String, nullable=False, default="completed")
+    error = Column(Text, nullable=True)
     source_version_id = Column(String, ForeignKey("generation_versions.id"), nullable=True)
     is_default = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))

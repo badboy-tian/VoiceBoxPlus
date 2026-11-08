@@ -26,6 +26,8 @@ class VoiceProfileCreate(BaseModel):
     design_prompt: Optional[str] = Field(None, max_length=2000)
     default_engine: Optional[str] = Field(None, max_length=50)
     personality: Optional[str] = Field(None, max_length=2000)
+    # 空值沿用默认试音，长度上限避免保存操作触发过长推理。
+    preview_text: Optional[str] = Field(None, max_length=1000)
 
 
 class VoiceProfileResponse(BaseModel):
@@ -43,6 +45,11 @@ class VoiceProfileResponse(BaseModel):
     design_prompt: Optional[str] = None
     default_engine: Optional[str] = None
     personality: Optional[str] = None
+    # 试音状态属于音色资源，不依赖历史条目是否仍然存在。
+    preview_text: Optional[str] = None
+    preview_status: str = "missing"
+    preview_revision: Optional[str] = None
+    preview_error: Optional[str] = None
     generation_count: int = 0
     sample_count: int = 0
     created_at: datetime
@@ -794,6 +801,12 @@ class GenerationVersionResponse(BaseModel):
     generation_id: str
     label: str
     audio_path: str
+    # 每个版本保留自己的文本和任务结果，便于恢复失败的编辑。
+    text: Optional[str] = None
+    instruct: Optional[str] = None
+    duration: Optional[float] = None
+    status: str = "completed"
+    error: Optional[str] = None
     effects_chain: Optional[List[EffectConfig]] = None
     source_version_id: Optional[str] = None
     is_default: bool
@@ -864,3 +877,16 @@ class CloudStatusResponse(BaseModel):
     key_prefix: Optional[str] = None
     connected_at: Optional[datetime] = None
     dashboard_url: str
+
+
+# 编辑只允许修改台词和传达指令，其余参数沿用原配音记录。
+class EditGenerationRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=50000)
+    instruct: Optional[str] = Field(None, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_text(self):
+        self.text = self.text.strip()
+        if not self.text:
+            raise ValueError("Text must not be blank")
+        return self

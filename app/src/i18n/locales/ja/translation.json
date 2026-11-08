@@ -264,6 +264,7 @@
       "system": "システムオーディオ"
     },
     "fields": {
+      "previewText": "試聴テキスト",
       "engine": "エンジン",
       "voice": "ボイス",
       "name": "名前",
@@ -292,6 +293,7 @@
       "createProfile": "プロファイルを作成"
     },
     "validation": {
+      "previewTextRequired": "試聴テキストを入力してください。",
       "nameRequired": "名前は必須です",
       "referenceRequired": "サンプルを追加する際はリファレンステキストが必須です",
       "sampleRequired": "オーディオサンプルが必要です",
@@ -406,6 +408,7 @@
   },
   "profiles": {
     "card": {
+      "preview": "{{name}} を試聴",
       "noDescription": "説明なし",
       "designed": "designed",
       "export": "プロファイルをエクスポート",
@@ -413,6 +416,14 @@
       "delete": "プロファイルを削除",
       "selectLabel": "{{name}}、{{language}}。生成のボイスとして選択。",
       "selectLabelSelected": "{{name}}、{{language}}。生成のボイスとして選択済み。"
+    },
+    "filters": {
+      "label": "音声の種類",
+      "all": "すべて",
+      "cloned": "クローン",
+      "designed": "デザイン",
+      "preset": "プリセット",
+      "empty": "この種類の音声はまだありません。"
     },
     "list": {
       "errorLoading": "プロファイルの読み込みエラー:{{message}}",
@@ -698,6 +709,16 @@
       "sourcePlaceholder": "ソースバージョンを選択",
       "apply": "適用",
       "applying": "適用中…"
+    },
+    "edit": {
+      "title": "Edit text & generate",
+      "text": "Text",
+      "instruct": "Delivery instruction",
+      "submit": "Generate new version",
+      "generating": "Generating…",
+      "failed": "Failed",
+      "retry": "Edit & retry",
+      "active": "Current"
     }
   },
   "generation": {
@@ -717,7 +738,35 @@
       "show": "デリバリー指示を表示",
       "hide": "デリバリー指示を非表示",
       "tooltip": "デリバリー指示(トーン、感情、ペース)",
-      "placeholder": "デリバリー指示 — 例:暖かくゆっくり話す、はっきりと威厳をもって…"
+      "placeholder": "デリバリー指示 — 例:暖かくゆっくり話す、はっきりと威厳をもって…",
+      "presets": {
+        "tone": "Tone",
+        "emotion": "Emotion",
+        "pace": "Pace",
+        "none": "Unspecified",
+        "natural": "Natural",
+        "friendly": "Friendly",
+        "gentle": "Gentle",
+        "professional": "Professional",
+        "storytelling": "Storytelling",
+        "whisper": "Whisper",
+        "confident": "Confident",
+        "playful": "Playful",
+        "calm": "Calm",
+        "happy": "Happy",
+        "excited": "Excited",
+        "sad": "Sad",
+        "angry": "Angry",
+        "surprised": "Surprised",
+        "serious": "Serious",
+        "comforting": "Comforting",
+        "steady": "Moderate",
+        "slow": "Slow",
+        "brisk": "Brisk",
+        "pauses": "Clear pauses",
+        "crisp": "Crisp",
+        "expressive": "Expressive"
+      }
     },
     "voiceSelector": {
       "placeholder": "ボイスを選択…"

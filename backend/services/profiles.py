@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from .. import config
 from ..database import (
@@ -55,7 +55,15 @@ def _profile_to_response(
             import logging
 
             logging.warning(f"Failed to parse effects_chain for profile {profile.id}: {e}")
+    # 与原有档案和数据库兼容，旧档案缺少试音时明确返回 missing。
+    from .voice_preview import preview_state, effective_preview_text
+    session = object_session(profile)
+    preview = preview_state(profile, session) if session is not None else {"status": "missing"}
     return VoiceProfileResponse(
+        preview_text=effective_preview_text(profile),
+        preview_status=preview["status"],
+        preview_revision=preview.get("revision"),
+        preview_error=preview.get("error"),
         id=profile.id,
         name=profile.name,
         description=profile.description,
@@ -216,6 +224,8 @@ async def create_profile(
         design_prompt=data.design_prompt,
         default_engine=default_engine,
         personality=data.personality,
+        # 去掉首尾空白，使保存内容与实际朗读内容保持一致。
+        preview_text=(data.preview_text or "").strip() or None,
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
@@ -438,6 +448,9 @@ async def update_profile(
     profile.description = data.description
     profile.language = data.language
     profile.personality = data.personality
+    # 老客户端未传此字段时保留已保存的试听文案。
+    if "preview_text" in data.model_fields_set:
+        profile.preview_text = (data.preview_text or "").strip() or None
     if data.default_engine is not None:
         profile.default_engine = data.default_engine or None  # empty string → NULL
     if voice_type == "designed":

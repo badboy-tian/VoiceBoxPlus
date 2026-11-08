@@ -1,4 +1,4 @@
-import { Download, Edit, Sparkles, Trash2, Wand2 } from 'lucide-react';
+import { Download, Edit, Loader2, Sparkles, Trash2, Volume2, Wand2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -28,9 +28,18 @@ const ENGINE_DISPLAY_NAMES: Record<string, string> = {
 interface ProfileCardProps {
   profile: VoiceProfileResponse;
   disabled?: boolean;
+  onPreview: () => void;
+  previewPending: boolean;
+  previewDisabled: boolean;
 }
 
-export function ProfileCard({ profile, disabled }: ProfileCardProps) {
+export function ProfileCard({
+  profile,
+  disabled,
+  onPreview,
+  previewPending,
+  previewDisabled,
+}: ProfileCardProps) {
   const { t } = useTranslation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
@@ -72,15 +81,6 @@ export function ProfileCard({ profile, disabled }: ProfileCardProps) {
     exportProfile.mutate(profile.id);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('button')) return;
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleSelect();
-    }
-  };
-
   const selectLabel = t(
     isSelected ? 'profiles.card.selectLabelSelected' : 'profiles.card.selectLabel',
     { name: profile.name, language: profile.language },
@@ -90,27 +90,34 @@ export function ProfileCard({ profile, disabled }: ProfileCardProps) {
     <>
       <Card
         className={cn(
-          'cursor-pointer transition-all flex flex-col h-[162px]',
-          disabled ? 'opacity-40 hover:opacity-60' : 'hover:shadow-md',
+          'relative cursor-pointer transition-all flex flex-col h-[162px]',
+          'hover:shadow-md',
           isSelected && !disabled && 'ring-2 border-transparent ring-accent shadow-md',
         )}
-        onClick={handleSelect}
-        tabIndex={0}
-        role="button"
-        aria-label={selectLabel}
-        aria-pressed={isSelected}
-        onKeyDown={handleKeyDown}
       >
-        <CardHeader className="p-3 pb-2">
+        {/* 卡片选择与试听是独立按钮，键盘和读屏都能分别访问。 */}
+        <button
+          type="button"
+          className="absolute inset-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={handleSelect}
+          aria-label={selectLabel}
+          aria-pressed={isSelected}
+        />
+        <CardHeader className={cn('p-3 pb-2', disabled && 'opacity-40')}>
           <CardTitle className="text-base font-medium">
             <span className="break-words">{profile.name}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3 pt-0 flex flex-col flex-1">
-          <p className="text-xs text-muted-foreground mb-1.5 line-clamp-2 leading-relaxed">
+          <p
+            className={cn(
+              'text-xs text-muted-foreground mb-1.5 line-clamp-2 leading-relaxed',
+              disabled && 'opacity-40',
+            )}
+          >
             {profile.description || t('profiles.card.noDescription')}
           </p>
-          <div className="mb-2 flex items-center gap-1.5">
+          <div className={cn('mb-2 flex items-center gap-1.5', disabled && 'opacity-40')}>
             <Badge variant="outline" className="text-xs h-5 px-1.5 text-muted-foreground">
               {profile.language}
             </Badge>
@@ -127,11 +134,36 @@ export function ProfileCard({ profile, disabled }: ProfileCardProps) {
             {profile.effects_chain && profile.effects_chain.length > 0 && (
               <Sparkles className="h-3.5 w-3.5 text-accent fill-accent" />
             )}
-            {profile.personality?.trim() && (
-              <Wand2 className="h-3.5 w-3.5 text-accent" />
-            )}
+            {profile.personality?.trim() && <Wand2 className="h-3.5 w-3.5 text-accent" />}
           </div>
-          <div className="flex gap-0.5 justify-end items-end mt-auto">
+          <div className="relative z-10 pointer-events-none flex gap-0.5 justify-end items-end mt-auto [&_button]:pointer-events-auto">
+            {/* 试听跟随音色，不受当前生成模型的兼容性筛选影响。 */}
+            <CircleButton
+              className={cn(
+                'mr-auto [&>svg]:text-foreground',
+                previewPending && '[&>svg]:animate-spin',
+              )}
+              icon={previewPending ? Loader2 : Volume2}
+              onClick={(event) => {
+                event.stopPropagation();
+                onPreview();
+              }}
+              disabled={previewDisabled}
+              aria-busy={previewPending}
+              aria-label={t('profiles.card.preview', { name: profile.name })}
+              // 未就绪时解释如何恢复，避免可见按钮点不了却没有原因。
+              title={
+                profile.preview_status === 'ready'
+                  ? t('profiles.card.preview', { name: profile.name })
+                  : profile.preview_status === 'generating'
+                    ? t('profiles.card.previewPreparing', {
+                        defaultValue: 'Preparing voice preview…',
+                      })
+                    : t('profiles.card.previewUnavailable', {
+                        defaultValue: 'Edit and save this voice to prepare its preview.',
+                      })
+              }
+            />
             <CircleButton
               icon={Download}
               onClick={handleExport}

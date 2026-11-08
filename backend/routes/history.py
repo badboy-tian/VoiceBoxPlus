@@ -91,7 +91,10 @@ async def get_generation(
         raise HTTPException(status_code=404, detail="Generation not found")
 
     gen, profile_name = result
+    # 单条轮询与列表必须返回同样的版本状态，否则编辑完成后会丢失展开版本。
+    version_items, active_version_id = history._get_versions_for_generation(generation_id, db)
     return models.HistoryResponse(
+        versions=version_items, active_version_id=active_version_id,
         id=gen.id,
         profile_id=gen.profile_id,
         profile_name=profile_name,

@@ -111,6 +111,11 @@ class ApiClient {
     });
   }
 
+  // 新增与编辑都读取服务端相同的默认试音文案。
+  async getPreviewDefaults(): Promise<Record<string, string>> {
+    return this.request<Record<string, string>>('/profiles/preview-defaults');
+  }
+
   async listProfiles(): Promise<VoiceProfileResponse[]> {
     return this.request<VoiceProfileResponse[]>('/profiles');
   }
@@ -272,6 +277,11 @@ class ApiClient {
     });
   }
 
+  // 编辑另存版本，父记录在新音频完成前仍可播放。
+  async editGeneration(id: string, data: { text: string; instruct: string | null }): Promise<GenerationVersionResponse> {
+    return this.request<GenerationVersionResponse>(`/generate/${id}/edit`, { method: 'POST', body: JSON.stringify(data) });
+  }
+
   async regenerateGeneration(generationId: string): Promise<GenerationResponse> {
     return this.request<GenerationResponse>(`/generate/${generationId}/regenerate`, {
       method: 'POST',
@@ -393,6 +403,11 @@ class ApiClient {
   // Audio
   getAudioUrl(audioId: string): string {
     return `${this.getBaseUrl()}/audio/${audioId}`;
+  }
+
+  // 仅播放保存阶段生成的固定试音，不访问配音历史。
+  getProfilePreviewUrl(profileId: string, revision: string): string {
+    return `${this.getBaseUrl()}/profiles/${profileId}/preview/audio?v=${encodeURIComponent(revision)}`;
   }
 
   getSampleUrl(sampleId: string): string {

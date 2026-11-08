@@ -33,6 +33,11 @@ def backfill_generation_versions(SessionLocal, Generation, GenerationVersion) ->
                 id=str(uuid.uuid4()),
                 generation_id=gen.id,
                 label="clean",
+                # 旧记录首次建立版本时同时冻结台词，后续编辑不会丢失原稿。
+                text=gen.text,
+                instruct=gen.instruct,
+                duration=gen.duration,
+                status="completed",
                 audio_path=gen.audio_path,
                 effects_chain=None,
                 is_default=True,

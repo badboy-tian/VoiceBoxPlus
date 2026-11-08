@@ -2,7 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useMatchRoute } from '@tanstack/react-router';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Dices, Loader2, SlidersHorizontal, Sparkles, Wand2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
@@ -25,6 +25,7 @@ import { useGenerationStore } from '@/stores/generationStore';
 import { useStoryStore } from '@/stores/storyStore';
 import { useUIStore } from '@/stores/uiStore';
 import { EngineModelSelector, engineSupportsInstruct } from './EngineModelSelector';
+import { InstructPresets } from './InstructPresets';
 import { ParalinguisticInput } from './ParalinguisticInput';
 
 interface FloatingGenerateBoxProps {
@@ -204,55 +205,19 @@ export function FloatingGenerateBox({
     }
   }, [selectedProfile, effectPresets, form]);
 
-  // Auto-resize textarea based on content (only when expanded)
-  useEffect(() => {
-    if (!isExpanded) {
-      // Reset textarea height after collapse animation completes
-      const timeoutId = setTimeout(() => {
-        const textarea = textareaRef.current;
-        if (textarea) {
-          textarea.style.height = '32px';
-          textarea.style.overflowY = 'hidden';
-        }
-      }, 200); // Wait for animation to complete
-      return () => clearTimeout(timeoutId);
-    }
+  const editorText = form.watch('text');
+  const editorEngine = form.watch('engine');
 
+  // 在绘制前按正文测量高度，聚焦空框时保持单行，避免浮动面板跳动。
+  useLayoutEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    const adjustHeight = () => {
-      textarea.style.height = 'auto';
-      const scrollHeight = textarea.scrollHeight;
-      const minHeight = 100; // Expanded minimum
-      const maxHeight = 300; // Max height in pixels
-      const targetHeight = Math.max(minHeight, Math.min(scrollHeight, maxHeight));
-      textarea.style.height = `${targetHeight}px`;
-
-      // Show scrollbar if content exceeds max height
-      if (scrollHeight > maxHeight) {
-        textarea.style.overflowY = 'auto';
-      } else {
-        textarea.style.overflowY = 'hidden';
-      }
-    };
-
-    // Small delay to let framer animation complete
-    const timeoutId = setTimeout(() => {
-      adjustHeight();
-    }, 200);
-
-    // Adjust on mount and when value changes
-    adjustHeight();
-
-    // Watch for input changes
-    textarea.addEventListener('input', adjustHeight);
-
-    return () => {
-      clearTimeout(timeoutId);
-      textarea.removeEventListener('input', adjustHeight);
-    };
-  }, [isExpanded]);
+    textarea.style.height = 'auto';
+    const contentHeight = textarea.scrollHeight;
+    textarea.style.height = isExpanded ? `${Math.min(contentHeight, 300)}px` : '40px';
+    textarea.style.overflowY = isExpanded && contentHeight > 300 ? 'auto' : 'hidden';
+  }, [editorEngine, editorText, isExpanded]);
 
   async function onSubmit(data: Parameters<typeof handleSubmit>[0]) {
     await handleSubmit(data, selectedProfileId);
@@ -262,7 +227,8 @@ export function FloatingGenerateBox({
     <motion.div
       ref={containerRef}
       className={cn(
-        'fixed',
+        // 浮动编辑区必须盖住音色卡的操作按钮，避免滚动时发生视觉和点击穿透。
+        'fixed z-30',
         isStoriesRoute
           ? // Aligned with StoryContent: sidebar + list width + gap (tab bleeds with -mx-8)
             'left-[calc(5rem+360px+1.5rem)] right-8'
@@ -279,7 +245,8 @@ export function FloatingGenerateBox({
       }}
     >
       <motion.div
-        className="bg-background/30 backdrop-blur-2xl border border-accent/20 rounded-[2rem] shadow-2xl hover:bg-background/40 hover:border-accent/20 transition-all duration-300 p-3"
+        // 使用实色背景，保证下方音色列表不会透过输入区干扰阅读。
+        className="bg-background border border-accent/20 rounded-[2rem] shadow-2xl hover:bg-background focus-within:border-accent/60 transition-colors duration-150 p-3"
         transition={{ duration: 0.6, ease: 'easeInOut' }}
       >
         <Form {...form}>
@@ -292,14 +259,9 @@ export function FloatingGenerateBox({
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <motion.div
-                          animate={{
-                            height: isExpanded ? 'auto' : '32px',
-                          }}
-                          transition={{ duration: 0.15, ease: 'easeOut' }}
-                          style={{ overflow: 'hidden' }}
-                        >
-                          {form.watch('engine') === 'chatterbox_turbo' ? (
+                        {/* 输入区跟随内容调整，避免外层动画与输入框争用高度。 */}
+                        <div className={isExpanded ? undefined : 'h-10 overflow-hidden'}>
+                          {editorEngine === 'chatterbox_turbo' ? (
                             <ParalinguisticInput
                               value={field.value}
                               onChange={field.onChange}
@@ -314,7 +276,7 @@ export function FloatingGenerateBox({
                               }
                               className="px-3 py-2 resize-none bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus:ring-0 outline-none ring-0 rounded-2xl text-sm w-full"
                               style={{
-                                minHeight: isExpanded ? '100px' : '32px',
+                                minHeight: '40px',
                                 maxHeight: '300px',
                                 overflowY: 'auto',
                               }}
@@ -340,17 +302,14 @@ export function FloatingGenerateBox({
                                       })
                                     : t('generation.placeholder.selectVoice')
                               }
-                              className="resize-none bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus:ring-0 outline-none ring-0 rounded-2xl text-sm placeholder:text-muted-foreground/60 w-full"
-                              style={{
-                                minHeight: isExpanded ? '100px' : '32px',
-                                maxHeight: '300px',
-                              }}
+                              rows={1}
+                              className="block min-h-10 max-h-[300px] resize-none bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus:ring-0 outline-none ring-0 rounded-2xl text-sm placeholder:text-muted-foreground/60 w-full"
                               disabled={!selectedProfileId}
                               onClick={() => setIsExpanded(true)}
                               onFocus={() => setIsExpanded(true)}
                             />
                           )}
-                        </motion.div>
+                        </div>
                       </FormControl>
                       <FormMessage className="text-xs" />
                     </FormItem>
@@ -527,12 +486,17 @@ export function FloatingGenerateBox({
                     name="instruct"
                     render={({ field }) => (
                       <FormItem className="mt-2">
+                        {/* 三个维度组合后进入同一说明框，手动补充仍沿用原有生成逻辑。 */}
+                        <InstructPresets value={field.value ?? ''} onChange={field.onChange} disabled={isPending} />
                         <FormControl>
                           <Textarea
                             {...field}
+                            aria-label={t('generation.instruct.show')}
                             placeholder={t('generation.instruct.placeholder')}
-                            className="resize-none bg-transparent border border-accent/20 focus-visible:ring-1 focus-visible:ring-accent/40 rounded-2xl text-sm placeholder:text-muted-foreground/60 w-full px-3 py-2"
-                            style={{ minHeight: '60px', maxHeight: '160px' }}
+                            className="resize-none bg-transparent border border-accent/20 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-offset-0 focus-visible:ring-accent/40 rounded-2xl text-sm placeholder:text-muted-foreground/60 w-full px-3 py-2"
+                            // 三组预设各占一行，默认高度让组合结果无需滚动即可核对。
+                            rows={3}
+                            style={{ minHeight: '80px', maxHeight: '160px' }}
                             maxLength={500}
                           />
                         </FormControl>
@@ -544,100 +508,90 @@ export function FloatingGenerateBox({
               )}
             </AnimatePresence>
 
-            <AnimatePresence>
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                className=" mt-3"
-              >
-                <div className="flex items-center gap-2">
-                  {showVoiceSelector && (
-                    <div className="flex-1">
-                      <Select
-                        value={selectedProfileId || ''}
-                        onValueChange={(value) => setSelectedProfileId(value || null)}
-                      >
-                        <SelectTrigger className="h-8 text-xs bg-card border-border rounded-full hover:bg-background/50 transition-all w-full">
-                          <SelectValue placeholder={t('generation.voiceSelector.placeholder')} />
-                        </SelectTrigger>
+            {/* 模型选择栏始终可用，避免编辑框改变高度时控件被动画隐藏。 */}
+            <div className="mt-3 flex items-center gap-2">
+              {showVoiceSelector && (
+                <div className="flex-1">
+                  <Select
+                    value={selectedProfileId || ''}
+                    onValueChange={(value) => setSelectedProfileId(value || null)}
+                  >
+                    <SelectTrigger className="h-8 text-xs bg-card border-border rounded-full hover:bg-background/50 transition-all w-full">
+                      <SelectValue placeholder={t('generation.voiceSelector.placeholder')} />
+                    </SelectTrigger>
+                    <SelectContent side="top">
+                      {profiles?.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id} className="text-xs">
+                          {profile.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <FormField
+                control={form.control}
+                name="language"
+                render={({ field }) => {
+                  const engineLangs = getLanguageOptionsForEngine(
+                    form.watch('engine') || 'qwen',
+                  );
+                  return (
+                    <FormItem className="flex-1 space-y-0">
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-8 text-xs bg-card border-border rounded-full hover:bg-background/50 transition-all">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
                         <SelectContent side="top">
-                          {profiles?.map((profile) => (
-                            <SelectItem key={profile.id} value={profile.id} className="text-xs">
-                              {profile.name}
+                          {engineLangs.map((lang) => (
+                            <SelectItem key={lang.value} value={lang.value} className="text-xs">
+                              {lang.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                  )}
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  );
+                }}
+              />
 
+              <FormItem className="flex-1 space-y-0">
+                <EngineModelSelector form={form} compact />
+              </FormItem>
 
-                  <FormField
-                    control={form.control}
-                    name="language"
-                    render={({ field }) => {
-                      const engineLangs = getLanguageOptionsForEngine(
-                        form.watch('engine') || 'qwen',
-                      );
-                      return (
-                        <FormItem className="flex-1 space-y-0">
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="h-8 text-xs bg-card border-border rounded-full hover:bg-background/50 transition-all">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent side="top">
-                              {engineLangs.map((lang) => (
-                                <SelectItem key={lang.value} value={lang.value} className="text-xs">
-                                  {lang.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage className="text-xs" />
-                        </FormItem>
-                      );
-                    }}
-                  />
-
-                  <FormItem className="flex-1 space-y-0">
-                    <EngineModelSelector form={form} compact />
-                  </FormItem>
-
-                  <FormItem className="flex-1 space-y-0">
-                    <Select
-                      value={selectedPresetId || 'none'}
-                      onValueChange={(value) =>
-                        setSelectedPresetId(value === 'none' ? null : value)
-                      }
-                    >
-                      <SelectTrigger className="h-8 text-xs bg-card border-border rounded-full hover:bg-background/50 transition-all">
-                        <SelectValue placeholder={t('generation.effects.none')} />
-                      </SelectTrigger>
-                      <SelectContent side="top">
-                        <SelectItem value="none" className="text-xs">
-                          {t('generation.effects.none')}
+              <FormItem className="flex-1 space-y-0">
+                <Select
+                  value={selectedPresetId || 'none'}
+                  onValueChange={(value) =>
+                    setSelectedPresetId(value === 'none' ? null : value)
+                  }
+                >
+                  <SelectTrigger className="h-8 text-xs bg-card border-border rounded-full hover:bg-background/50 transition-all">
+                    <SelectValue placeholder={t('generation.effects.none')} />
+                  </SelectTrigger>
+                  <SelectContent side="top">
+                    <SelectItem value="none" className="text-xs">
+                      {t('generation.effects.none')}
+                    </SelectItem>
+                    {selectedProfile?.effects_chain &&
+                      selectedProfile.effects_chain.length > 0 && (
+                        <SelectItem value="_profile" className="text-xs">
+                          {t('generation.effects.profileDefault')}
                         </SelectItem>
-                        {selectedProfile?.effects_chain &&
-                          selectedProfile.effects_chain.length > 0 && (
-                            <SelectItem value="_profile" className="text-xs">
-                              {t('generation.effects.profileDefault')}
-                            </SelectItem>
-                          )}
-                        {effectPresets?.map((preset) => (
-                          <SelectItem key={preset.id} value={preset.id} className="text-xs">
-                            {preset.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                </div>
-              </motion.div>
-            </AnimatePresence>
+                      )}
+                    {effectPresets?.map((preset) => (
+                      <SelectItem key={preset.id} value={preset.id} className="text-xs">
+                        {preset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            </div>
           </form>
         </Form>
       </motion.div>

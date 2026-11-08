@@ -37,6 +37,9 @@ def _version_response(v: DBGenerationVersion) -> GenerationVersionResponse:
         label=v.label,
         audio_path=v.audio_path,
         effects_chain=effects_chain,
+        # 界面展示和试听都使用当前版本的台词，不能借用父记录的最新台词。
+        text=v.text, instruct=v.instruct, duration=v.duration,
+        status=v.status or "completed", error=v.error,
         source_version_id=v.source_version_id,
         is_default=v.is_default,
         created_at=v.created_at,
@@ -73,7 +76,7 @@ def get_default_version(generation_id: str, db: Session) -> Optional[GenerationV
         # Fallback: return the first version
         v = (
             db.query(DBGenerationVersion)
-            .filter_by(generation_id=generation_id)
+            .filter_by(generation_id=generation_id, status="completed")
             .order_by(DBGenerationVersion.created_at)
             .first()
         )
@@ -90,55 +93,73 @@ def create_version(
     effects_chain: Optional[List[dict]] = None,
     is_default: bool = False,
     source_version_id: Optional[str] = None,
+    text: Optional[str] = None,
+    instruct: Optional[str] = None,
+    duration: Optional[float] = None,
+    status: str = "completed",
 ) -> GenerationVersionResponse:
     """Create a new version for a generation.
 
     If ``is_default`` is True, all other versions for this generation
     are un-defaulted first.
     """
+    gen = db.query(DBGeneration).filter_by(id=generation_id).first()
+    if not gen:
+        raise ValueError("Generation not found")
+    source = db.query(DBGenerationVersion).filter_by(id=source_version_id).first() if source_version_id else None
+    if source and source.generation_id != generation_id:
+        raise ValueError("Source version does not belong to this generation")
+    # 效果版本继承它真正的来源台词；编辑版本则显式提供新稿。
+    if text is None:
+        text = source.text if source and source.text is not None else gen.text
+        instruct = source.instruct if source and source.text is not None else gen.instruct
+    if duration is None and status == "completed":
+        path = config.resolve_storage_path(audio_path)
+        if path and path.is_file():
+            import soundfile as sf
+            duration = sf.info(str(path)).duration
+    if is_default and status != "completed":
+        raise ValueError("Only completed versions can be selected")
     if is_default:
         _clear_defaults(generation_id, db)
-
     version = DBGenerationVersion(
-        id=str(uuid.uuid4()),
-        generation_id=generation_id,
-        label=label,
-        audio_path=audio_path,
+        id=str(uuid.uuid4()), generation_id=generation_id, label=label, audio_path=audio_path,
         effects_chain=json.dumps(effects_chain) if effects_chain else None,
-        source_version_id=source_version_id,
-        is_default=is_default,
+        source_version_id=source_version_id, is_default=is_default,
+        text=text, instruct=instruct, duration=duration, status=status,
     )
     db.add(version)
+    if is_default:
+        _sync_generation(gen, version)
+    # 音频、台词与默认标记在同一事务提交，避免短暂出现内容错配。
     db.commit()
     db.refresh(version)
-
-    # If this version is the default, update the generation's audio_path
-    if is_default:
-        gen = db.query(DBGeneration).filter_by(id=generation_id).first()
-        if gen:
-            gen.audio_path = audio_path
-            db.commit()
-
     return _version_response(version)
 
 
+def _sync_generation(gen, version):
+    gen.audio_path = version.audio_path
+    if version.text is not None:
+        gen.text = version.text
+        gen.instruct = version.instruct
+    if version.duration is not None:
+        gen.duration = version.duration
+
+
 def set_default_version(version_id: str, db: Session) -> Optional[GenerationVersionResponse]:
-    """Set a version as the default for its generation."""
     version = db.query(DBGenerationVersion).filter_by(id=version_id).first()
     if not version:
         return None
-
+    # 尚未生成成功的编辑只有草稿，没有可选音频。
+    if (version.status or "completed") != "completed":
+        raise ValueError("Only completed versions can be selected")
     _clear_defaults(version.generation_id, db)
     version.is_default = True
-    db.commit()
-    db.refresh(version)
-
-    # Update generation's audio_path to point to this version
     gen = db.query(DBGeneration).filter_by(id=version.generation_id).first()
     if gen:
-        gen.audio_path = version.audio_path
-        db.commit()
-
+        _sync_generation(gen, version)
+    db.commit()
+    db.refresh(version)
     return _version_response(version)
 
 
@@ -154,7 +175,13 @@ def delete_version(version_id: str, db: Session) -> bool:
         .filter_by(generation_id=version.generation_id)
         .count()
     )
-    if count <= 1:
+    if count <= 1 or version.status == "generating":
+        return False
+    # 失败稿不能被当作最后一个可播放版本的替代品。
+    completed_count = db.query(DBGenerationVersion).filter_by(
+        generation_id=version.generation_id, status="completed"
+    ).count()
+    if version.status == "completed" and completed_count <= 1:
         return False
 
     was_default = version.is_default
@@ -162,7 +189,7 @@ def delete_version(version_id: str, db: Session) -> bool:
 
     # Delete audio file
     audio_path = config.resolve_storage_path(version.audio_path)
-    if audio_path is not None and audio_path.exists():
+    if audio_path is not None and audio_path.is_file():
         audio_path.unlink()
 
     db.delete(version)
@@ -172,7 +199,7 @@ def delete_version(version_id: str, db: Session) -> bool:
     if was_default:
         first = (
             db.query(DBGenerationVersion)
-            .filter_by(generation_id=gen_id)
+            .filter_by(generation_id=gen_id, status="completed")
             .order_by(DBGenerationVersion.created_at)
             .first()
         )
@@ -181,7 +208,7 @@ def delete_version(version_id: str, db: Session) -> bool:
             db.commit()
             gen = db.query(DBGeneration).filter_by(id=gen_id).first()
             if gen:
-                gen.audio_path = first.audio_path
+                _sync_generation(gen, first)
                 db.commit()
 
     return True
@@ -208,7 +235,7 @@ def delete_versions_for_generation(generation_id: str, db: Session, commit: bool
     count = 0
     for v in versions:
         audio_path = config.resolve_storage_path(v.audio_path)
-        if audio_path is not None and audio_path.exists():
+        if audio_path is not None and audio_path.is_file():
             try:
                 audio_path.unlink()
             except OSError:

@@ -264,6 +264,7 @@
       "system": "Audio système"
     },
     "fields": {
+      "previewText": "Texte d’aperçu",
       "engine": "Moteur",
       "voice": "Voix",
       "name": "Nom",
@@ -292,6 +293,7 @@
       "createProfile": "Créer le profil"
     },
     "validation": {
+      "previewTextRequired": "Saisissez un texte pour écouter la voix.",
       "nameRequired": "Le nom est requis",
       "referenceRequired": "Le texte de référence est requis lors de l'ajout d'un échantillon",
       "sampleRequired": "Un échantillon audio est requis",
@@ -406,6 +408,7 @@
   },
   "profiles": {
     "card": {
+      "preview": "Écouter {{name}}",
       "noDescription": "Aucune description",
       "designed": "conçu pour",
       "export": "Exporter le profil",
@@ -413,6 +416,14 @@
       "delete": "Supprimer le profil",
       "selectLabel": "{{name}}, {{language}}. Sélectionnez comme voix pour la génération.",
       "selectLabelSelected": "{{name}}, {{language}}. Sélectionné comme voix pour la génération."
+    },
+    "filters": {
+      "label": "Type de voix",
+      "all": "Toutes",
+      "cloned": "Clonées",
+      "designed": "Créées",
+      "preset": "Prédéfinies",
+      "empty": "Aucune voix dans cette catégorie."
     },
     "list": {
       "errorLoading": "Erreur lors du chargement des profils : {{message}}",
@@ -698,6 +709,16 @@
       "sourcePlaceholder": "Sélectionnez la version source",
       "apply": "Appliquer",
       "applying": "Application…"
+    },
+    "edit": {
+      "title": "Edit text & generate",
+      "text": "Text",
+      "instruct": "Delivery instruction",
+      "submit": "Generate new version",
+      "generating": "Generating…",
+      "failed": "Failed",
+      "retry": "Edit & retry",
+      "active": "Current"
     }
   },
   "generation": {
@@ -717,7 +738,35 @@
       "show": "Afficher les instructions d'interprétation",
       "hide": "Masquer les instructions d'interprétation",
       "tooltip": "Instructions d'interprétation (ton, émotion, rythme)",
-      "placeholder": "Instructions d'interprétation — ex. Parle lentement avec chaleur, Autoritaire et clair…"
+      "placeholder": "Instructions d'interprétation — ex. Parle lentement avec chaleur, Autoritaire et clair…",
+      "presets": {
+        "tone": "Tone",
+        "emotion": "Emotion",
+        "pace": "Pace",
+        "none": "Unspecified",
+        "natural": "Natural",
+        "friendly": "Friendly",
+        "gentle": "Gentle",
+        "professional": "Professional",
+        "storytelling": "Storytelling",
+        "whisper": "Whisper",
+        "confident": "Confident",
+        "playful": "Playful",
+        "calm": "Calm",
+        "happy": "Happy",
+        "excited": "Excited",
+        "sad": "Sad",
+        "angry": "Angry",
+        "surprised": "Surprised",
+        "serious": "Serious",
+        "comforting": "Comforting",
+        "steady": "Moderate",
+        "slow": "Slow",
+        "brisk": "Brisk",
+        "pauses": "Clear pauses",
+        "crisp": "Crisp",
+        "expressive": "Expressive"
+      }
     },
     "voiceSelector": {
       "placeholder": "Sélectionnez une voix…"

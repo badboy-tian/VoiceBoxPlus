@@ -45,12 +45,13 @@ export function AboutPage() {
       <div className="max-w-md mx-auto h-full flex items-center">
         <div className="flex flex-col items-center text-center space-y-5">
           <FadeIn delay={0}>
-            <img src={voiceboxLogo} alt="Voicebox" className="w-20 h-20 object-contain" />
+            <img src={voiceboxLogo} alt="VoiceBoxPlus" className="w-20 h-20 object-contain" />
           </FadeIn>
 
           <FadeIn delay={80}>
             <div className="space-y-1.5">
-              <h1 className="text-lg font-semibold">Voicebox</h1>
+              {/* 仅更换品牌显示名，保留原有标识以兼容已保存的数据。 */}
+              <h1 className="text-lg font-semibold">VoiceBoxPlus</h1>
               <p className="text-xs text-muted-foreground/60 h-4">
                 {version ? `v${version}` : '\u00A0'}
               </p>
@@ -110,7 +111,7 @@ export function AboutPage() {
                 <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
               </a>
               <a
-                href="https://github.com/jamiepine/voicebox"
+                href="https://github.com/badboy-tian/voicebox"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group inline-flex items-center gap-2 rounded-lg border border-border/60 px-4 py-2 text-sm transition-colors hover:bg-muted/50"

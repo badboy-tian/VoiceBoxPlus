@@ -74,16 +74,19 @@ export function AudioPlayer() {
   const [error, setError] = useState<string | null>(null);
   const [wsReady, setWsReady] = useState(false);
 
-  // Create WaveSurfer once when the player becomes visible (audioUrl is set).
-  // This instance is reused for all subsequent audio loads - never destroyed until unmount.
+  const isPlayerVisible = !!audioUrl;
+
+  // 画布随播放条关闭而移除，实例必须与这段可见生命周期同步，不能复用已脱离 DOM 的画布。
   useEffect(() => {
-    if (!audioUrl) return;
-    if (wavesurferRef.current) return; // already created
+    if (!isPlayerVisible) return;
+    let disposed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
     const initWaveSurfer = () => {
+      if (disposed) return;
       const container = waveformRef.current;
       if (!container) {
-        setTimeout(initWaveSurfer, 50);
+        retryTimer = setTimeout(initWaveSurfer, 50);
         return;
       }
 
@@ -96,7 +99,7 @@ export function AudioPlayer() {
         style.visibility !== 'hidden';
 
       if (!isVisible) {
-        setTimeout(initWaveSurfer, 50);
+        retryTimer = setTimeout(initWaveSurfer, 50);
         return;
       }
 
@@ -233,28 +236,22 @@ export function AudioPlayer() {
     });
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(rafId);
-    };
-    // Only run on mount-like conditions. audioUrl is here so we create the instance
-    // when the player first appears, but we guard against re-creation above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioUrl, setIsPlaying, setDuration, setCurrentTime]);
-
-  // Destroy WaveSurfer only on unmount
-  useEffect(() => {
-    return () => {
-      if (wavesurferRef.current) {
-        debug.log('Destroying WaveSurfer instance (unmount)');
+      clearTimeout(retryTimer);
+      // 关闭时销毁旧实例，再次试听将绑定新容器；切换音频仍复用当前可见实例。
+      const wavesurfer = wavesurferRef.current;
+      wavesurferRef.current = null;
+      setWsReady(false);
+      if (wavesurfer) {
         try {
-          wavesurferRef.current.destroy();
+          wavesurfer.destroy();
         } catch (err) {
           debug.error('Error destroying WaveSurfer:', err);
         }
-        wavesurferRef.current = null;
-        setWsReady(false);
       }
     };
-  }, []);
+  }, [isPlayerVisible, setIsPlaying, setDuration, setCurrentTime]);
 
   // Load audio when URL changes (reuses the existing WaveSurfer instance)
   useEffect(() => {
@@ -298,18 +295,25 @@ export function AudioPlayer() {
     setCurrentTime(0);
     setDuration(0);
 
+    // 快速切换或关闭时，旧加载的取消异常不能覆盖新音频的状态。
+    let cancelled = false;
     wavesurfer
       .load(audioUrl)
       .then(() => {
+        if (cancelled) return;
         debug.log('Audio loaded into WaveSurfer');
         loadingRef.current = false;
       })
       .catch((err) => {
+        if (cancelled) return;
         debug.error('Failed to load audio:', err);
         loadingRef.current = false;
         setIsLoading(false);
         setError(`Failed to load audio: ${err instanceof Error ? err.message : String(err)}`);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [audioUrl, wsReady, setCurrentTime, setDuration]);
 
   // Sync play/pause state (only when user clicks play/pause button, not auto-sync)

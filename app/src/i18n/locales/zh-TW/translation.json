@@ -264,6 +264,7 @@
       "system": "系統音訊"
     },
     "fields": {
+      "previewText": "試聽文案",
       "engine": "引擎",
       "voice": "聲音",
       "name": "名稱",
@@ -292,6 +293,7 @@
       "createProfile": "建立檔案"
     },
     "validation": {
+      "previewTextRequired": "請輸入試聽文案。",
       "nameRequired": "請輸入名稱",
       "referenceRequired": "新增樣本時需要參考文字",
       "sampleRequired": "需要音訊樣本",
@@ -406,6 +408,9 @@
   },
   "profiles": {
     "card": {
+      "preview": "試聽 {{name}}",
+      "previewPreparing": "正在產生固定試音…",
+      "previewUnavailable": "請編輯並儲存音色以產生固定試音。",
       "noDescription": "無描述",
       "designed": "設計",
       "export": "匯出聲音檔案",
@@ -413,6 +418,14 @@
       "delete": "刪除聲音檔案",
       "selectLabel": "{{name}},{{language}}。選擇用於生成的聲音。",
       "selectLabelSelected": "{{name}},{{language}}。已選為用於生成的聲音。"
+    },
+    "filters": {
+      "label": "音色類型",
+      "all": "全部",
+      "cloned": "複製",
+      "designed": "設計",
+      "preset": "預設",
+      "empty": "尚無此類音色。"
     },
     "list": {
       "errorLoading": "載入聲音檔案時出錯:{{message}}",
@@ -698,6 +711,16 @@
       "sourcePlaceholder": "選擇來源版本",
       "apply": "套用",
       "applying": "套用中…"
+    },
+    "edit": {
+      "title": "編輯台詞並生成",
+      "text": "台詞",
+      "instruct": "傳達說明",
+      "submit": "生成新版本",
+      "generating": "生成中…",
+      "failed": "生成失敗",
+      "retry": "修改並重試",
+      "active": "目前"
     }
   },
   "generation": {
@@ -717,7 +740,35 @@
       "show": "顯示傳達指示",
       "hide": "隱藏傳達指示",
       "tooltip": "傳達指示 (語氣、情感、節奏)",
-      "placeholder": "傳達指示——例如:溫柔緩慢地說、威嚴清晰…"
+      "placeholder": "傳達指示——例如:溫柔緩慢地說、威嚴清晰…",
+      "presets": {
+        "tone": "語氣",
+        "emotion": "情感",
+        "pace": "節奏",
+        "none": "不指定",
+        "natural": "自然",
+        "friendly": "親切",
+        "gentle": "溫柔",
+        "professional": "專業",
+        "storytelling": "講述",
+        "whisper": "低語",
+        "confident": "堅定",
+        "playful": "幽默",
+        "calm": "平靜",
+        "happy": "開心",
+        "excited": "興奮",
+        "sad": "傷感",
+        "angry": "生氣",
+        "surprised": "驚訝",
+        "serious": "嚴肅",
+        "comforting": "關懷",
+        "steady": "適中",
+        "slow": "舒緩",
+        "brisk": "輕快",
+        "pauses": "停頓分明",
+        "crisp": "乾脆俐落",
+        "expressive": "抑揚頓挫"
+      }
     },
     "voiceSelector": {
       "placeholder": "選擇聲音…"

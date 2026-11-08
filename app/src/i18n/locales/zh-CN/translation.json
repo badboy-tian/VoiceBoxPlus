@@ -264,6 +264,7 @@
       "system": "系统音频"
     },
     "fields": {
+      "previewText": "试听文案",
       "engine": "引擎",
       "voice": "声音",
       "name": "名称",
@@ -292,6 +293,7 @@
       "createProfile": "创建档案"
     },
     "validation": {
+      "previewTextRequired": "请输入试听文案。",
       "nameRequired": "请输入名称",
       "referenceRequired": "添加样本时需要参考文本",
       "sampleRequired": "需要音频样本",
@@ -406,6 +408,9 @@
   },
   "profiles": {
     "card": {
+      "preview": "试听 {{name}}",
+      "previewPreparing": "正在生成固定试音…",
+      "previewUnavailable": "请编辑并保存音色以生成固定试音。",
       "noDescription": "无描述",
       "designed": "设计",
       "export": "导出声音档案",
@@ -413,6 +418,14 @@
       "delete": "删除声音档案",
       "selectLabel": "{{name}},{{language}}。选择用于生成的声音。",
       "selectLabelSelected": "{{name}},{{language}}。已选为用于生成的声音。"
+    },
+    "filters": {
+      "label": "音色类型",
+      "all": "全部",
+      "cloned": "克隆",
+      "designed": "设计",
+      "preset": "预设",
+      "empty": "暂无此类音色。"
     },
     "list": {
       "errorLoading": "加载声音档案时出错:{{message}}",
@@ -698,6 +711,16 @@
       "sourcePlaceholder": "选择来源版本",
       "apply": "应用",
       "applying": "应用中…"
+    },
+    "edit": {
+      "title": "编辑台词并生成",
+      "text": "台词",
+      "instruct": "传达说明",
+      "submit": "生成新版本",
+      "generating": "生成中…",
+      "failed": "生成失败",
+      "retry": "修改并重试",
+      "active": "当前"
     }
   },
   "generation": {
@@ -717,7 +740,35 @@
       "show": "显示传达说明",
       "hide": "隐藏传达说明",
       "tooltip": "传达说明 (语气、情感、节奏)",
-      "placeholder": "传达说明——例如:温柔缓慢地说、威严清晰…"
+      "placeholder": "传达说明——例如:温柔缓慢地说、威严清晰…",
+      "presets": {
+        "tone": "语气",
+        "emotion": "情感",
+        "pace": "节奏",
+        "none": "不指定",
+        "natural": "自然",
+        "friendly": "亲切",
+        "gentle": "温柔",
+        "professional": "专业",
+        "storytelling": "讲述",
+        "whisper": "低语",
+        "confident": "坚定",
+        "playful": "幽默",
+        "calm": "平静",
+        "happy": "开心",
+        "excited": "兴奋",
+        "sad": "伤感",
+        "angry": "生气",
+        "surprised": "惊讶",
+        "serious": "严肃",
+        "comforting": "关怀",
+        "steady": "适中",
+        "slow": "舒缓",
+        "brisk": "轻快",
+        "pauses": "停顿分明",
+        "crisp": "干脆利落",
+        "expressive": "抑扬顿挫"
+      }
     },
     "voiceSelector": {
       "placeholder": "选择声音…"

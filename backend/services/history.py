@@ -55,22 +55,9 @@ def _get_versions_for_generations(generation_ids: list[str], db: Session) -> dic
     active_by_generation: dict[str, Optional[str]] = {}
     for v in versions_rows:
         versions = versions_by_generation.setdefault(v.generation_id, [])
-        effects_chain = None
-        if v.effects_chain:
-            try:
-                raw = json.loads(v.effects_chain)
-                effects_chain = [EffectConfig(**e) for e in raw]
-            except Exception:
-                pass
-        versions.append(GenerationVersionResponse(
-            id=v.id,
-            generation_id=v.generation_id,
-            label=v.label,
-            audio_path=v.audio_path,
-            effects_chain=effects_chain,
-            is_default=v.is_default,
-            created_at=v.created_at,
-        ))
+        # 统一版本序列化，历史页也包含编辑任务状态及逐版本台词。
+        from .versions import _version_response
+        versions.append(_version_response(v))
         if v.is_default:
             active_by_generation[v.generation_id] = v.id
 

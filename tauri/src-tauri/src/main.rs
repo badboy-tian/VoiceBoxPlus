@@ -35,7 +35,8 @@ fn build_dictate_window(app: &tauri::AppHandle) -> tauri::Result<tauri::WebviewW
         DICTATE_WINDOW_LABEL,
         WebviewUrl::App("?view=dictate".into()),
     )
-    .title("Voicebox Dictate")
+    // 使用二开品牌名，便于区分桌面窗口。
+    .title("VoiceBoxPlus Dictate")
     .inner_size(DICTATE_WINDOW_WIDTH, DICTATE_WINDOW_HEIGHT)
     .decorations(false)
     .transparent(true)
@@ -121,7 +122,8 @@ pub fn show_dictate_window(app: &tauri::AppHandle) {
 }
 
 const LEGACY_PORT: u16 = 8000;
-pub(crate) const SERVER_PORT: u16 = 17493;
+// 独立端口让桌面升级版连接自己的数据库和推理服务。
+pub(crate) const SERVER_PORT: u16 = 17594;
 
 /// Find a voicebox-server process listening on a given port (Windows only).
 ///

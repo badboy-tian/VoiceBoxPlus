@@ -154,6 +154,9 @@ def _migrate_profiles(engine, inspector, tables: set[str]) -> None:
         _add_column(engine, "profiles", "preset_engine VARCHAR", "preset_engine")
     if "preset_voice_id" not in columns:
         _add_column(engine, "profiles", "preset_voice_id VARCHAR", "preset_voice_id")
+    # 只追加可空字段，保留原数据库的音色、样本与配音历史。
+    if "preview_text" not in columns:
+        _add_column(engine, "profiles", "preview_text TEXT", "preview_text")
     if "design_prompt" not in columns:
         _add_column(engine, "profiles", "design_prompt TEXT", "design_prompt")
     if "default_engine" not in columns:
@@ -201,6 +204,19 @@ def _migrate_generation_versions(engine, inspector, tables: set[str]) -> None:
     columns = _get_columns(inspector, "generation_versions")
     if "source_version_id" not in columns:
         _add_column(engine, "generation_versions", "source_version_id VARCHAR", "source_version_id")
+
+    # 为旧版本补齐台词快照；仅第一次增加列时回填，避免覆盖以后不同的台词版本。
+    for name, declaration in (("text", "text TEXT"), ("instruct", "instruct TEXT"),
+                              ("duration", "duration FLOAT"), ("status", "status VARCHAR DEFAULT 'completed'"),
+                              ("error", "error TEXT")):
+        if name not in columns:
+            _add_column(engine, "generation_versions", declaration, name)
+            if name in ("text", "instruct", "duration") and "generations" in tables:
+                with engine.begin() as connection:
+                    connection.execute(text(
+                        f"UPDATE generation_versions SET {name} = "
+                        f"(SELECT {name} FROM generations WHERE generations.id = generation_versions.generation_id)"
+                    ))
 
 
 def _migrate_capture_settings(engine, inspector, tables: set[str]) -> None:

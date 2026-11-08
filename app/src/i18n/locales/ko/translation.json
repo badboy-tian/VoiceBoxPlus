@@ -264,6 +264,7 @@
       "system": "시스템 오디오"
     },
     "fields": {
+      "previewText": "미리 듣기 문구",
       "engine": "엔진",
       "voice": "음성",
       "name": "이름",
@@ -292,6 +293,7 @@
       "createProfile": "프로필 만들기"
     },
     "validation": {
+      "previewTextRequired": "미리 들을 문구를 입력하세요.",
       "nameRequired": "이름은 필수입니다",
       "referenceRequired": "샘플을 추가할 때는 참조 텍스트가 필요합니다",
       "sampleRequired": "오디오 샘플이 필요합니다",
@@ -406,6 +408,7 @@
   },
   "profiles": {
     "card": {
+      "preview": "{{name}} 미리 듣기",
       "noDescription": "설명 없음",
       "designed": "디자인됨",
       "export": "프로필 내보내기",
@@ -413,6 +416,14 @@
       "delete": "프로필 삭제",
       "selectLabel": "{{name}}, {{language}}. 생성할 음성으로 선택하세요.",
       "selectLabelSelected": "{{name}}, {{language}}. 생성할 음성으로 선택됨."
+    },
+    "filters": {
+      "label": "음성 유형",
+      "all": "전체",
+      "cloned": "복제",
+      "designed": "디자인",
+      "preset": "프리셋",
+      "empty": "이 유형의 음성이 아직 없습니다."
     },
     "list": {
       "errorLoading": "프로필 로딩 오류: {{message}}",
@@ -698,6 +709,16 @@
       "sourcePlaceholder": "소스 버전 선택",
       "apply": "적용",
       "applying": "적용 중…"
+    },
+    "edit": {
+      "title": "Edit text & generate",
+      "text": "Text",
+      "instruct": "Delivery instruction",
+      "submit": "Generate new version",
+      "generating": "Generating…",
+      "failed": "Failed",
+      "retry": "Edit & retry",
+      "active": "Current"
     }
   },
   "generation": {
@@ -717,7 +738,35 @@
       "show": "전달 지시사항 보기",
       "hide": "전달 지시사항 숨기기",
       "tooltip": "전달 지시사항 (톤, 감정, 속도)",
-      "placeholder": "전달 지시사항 — 예: 천천히 따뜻하게 말하기, 권위적으로 명확하게…"
+      "placeholder": "전달 지시사항 — 예: 천천히 따뜻하게 말하기, 권위적으로 명확하게…",
+      "presets": {
+        "tone": "Tone",
+        "emotion": "Emotion",
+        "pace": "Pace",
+        "none": "Unspecified",
+        "natural": "Natural",
+        "friendly": "Friendly",
+        "gentle": "Gentle",
+        "professional": "Professional",
+        "storytelling": "Storytelling",
+        "whisper": "Whisper",
+        "confident": "Confident",
+        "playful": "Playful",
+        "calm": "Calm",
+        "happy": "Happy",
+        "excited": "Excited",
+        "sad": "Sad",
+        "angry": "Angry",
+        "surprised": "Surprised",
+        "serious": "Serious",
+        "comforting": "Comforting",
+        "steady": "Moderate",
+        "slow": "Slow",
+        "brisk": "Brisk",
+        "pauses": "Clear pauses",
+        "crisp": "Crisp",
+        "expressive": "Expressive"
+      }
     },
     "voiceSelector": {
       "placeholder": "음성 선택…"

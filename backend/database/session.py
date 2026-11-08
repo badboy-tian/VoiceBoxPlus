@@ -80,6 +80,13 @@ def init_db() -> None:
     finally:
         db.close()
 
+    # 重启后队列已不存在，未完成的编辑保留为可重试的失败稿，原音频保持可用。
+    with SessionLocal() as recovery_db:
+        recovery_db.query(GenerationVersion).filter_by(status="generating").update({
+            "status": "failed", "error": "Generation interrupted by app restart",
+        })
+        recovery_db.commit()
+
     backfill_generation_versions(SessionLocal, Generation, GenerationVersion)
     seed_builtin_presets(SessionLocal, EffectPreset)
 

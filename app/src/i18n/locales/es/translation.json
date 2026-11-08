@@ -264,6 +264,7 @@
       "system": "Audio del sistema"
     },
     "fields": {
+      "previewText": "Texto de prueba",
       "engine": "Motor",
       "voice": "Voz",
       "name": "Nombre",
@@ -292,6 +293,7 @@
       "createProfile": "Crear perfil"
     },
     "validation": {
+      "previewTextRequired": "Introduce un texto para escuchar la voz.",
       "nameRequired": "El nombre es obligatorio",
       "referenceRequired": "El texto de referencia es obligatorio al añadir una muestra",
       "sampleRequired": "La muestra de audio es obligatoria",
@@ -406,6 +408,7 @@
   },
   "profiles": {
     "card": {
+      "preview": "Escuchar {{name}}",
       "noDescription": "Sin descripción",
       "designed": "diseñada",
       "export": "Exportar perfil",
@@ -413,6 +416,14 @@
       "delete": "Eliminar perfil",
       "selectLabel": "{{name}}, {{language}}. Seleccionar como voz para la generación.",
       "selectLabelSelected": "{{name}}, {{language}}. Seleccionada como voz para la generación."
+    },
+    "filters": {
+      "label": "Tipo de voz",
+      "all": "Todas",
+      "cloned": "Clonadas",
+      "designed": "Diseñadas",
+      "preset": "Predefinidas",
+      "empty": "Aún no hay voces en esta categoría."
     },
     "list": {
       "errorLoading": "Error al cargar los perfiles: {{message}}",
@@ -698,6 +709,16 @@
       "sourcePlaceholder": "Selecciona la versión de origen",
       "apply": "Aplicar",
       "applying": "Aplicando…"
+    },
+    "edit": {
+      "title": "Edit text & generate",
+      "text": "Text",
+      "instruct": "Delivery instruction",
+      "submit": "Generate new version",
+      "generating": "Generating…",
+      "failed": "Failed",
+      "retry": "Edit & retry",
+      "active": "Current"
     }
   },
   "generation": {
@@ -717,7 +738,35 @@
       "show": "Mostrar instrucciones de interpretación",
       "hide": "Ocultar instrucciones de interpretación",
       "tooltip": "Instrucciones de interpretación (tono, emoción, ritmo)",
-      "placeholder": "Instrucciones de interpretación — p. ej. Habla despacio y con calidez, Con autoridad y claridad…"
+      "placeholder": "Instrucciones de interpretación — p. ej. Habla despacio y con calidez, Con autoridad y claridad…",
+      "presets": {
+        "tone": "Tone",
+        "emotion": "Emotion",
+        "pace": "Pace",
+        "none": "Unspecified",
+        "natural": "Natural",
+        "friendly": "Friendly",
+        "gentle": "Gentle",
+        "professional": "Professional",
+        "storytelling": "Storytelling",
+        "whisper": "Whisper",
+        "confident": "Confident",
+        "playful": "Playful",
+        "calm": "Calm",
+        "happy": "Happy",
+        "excited": "Excited",
+        "sad": "Sad",
+        "angry": "Angry",
+        "surprised": "Surprised",
+        "serious": "Serious",
+        "comforting": "Comforting",
+        "steady": "Moderate",
+        "slow": "Slow",
+        "brisk": "Brisk",
+        "pauses": "Clear pauses",
+        "crisp": "Crisp",
+        "expressive": "Expressive"
+      }
     },
     "voiceSelector": {
       "placeholder": "Selecciona una voz…"

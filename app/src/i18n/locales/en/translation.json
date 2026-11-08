@@ -264,6 +264,7 @@
       "system": "System Audio"
     },
     "fields": {
+      "previewText": "Preview text",
       "engine": "Engine",
       "voice": "Voice",
       "name": "Name",
@@ -292,6 +293,7 @@
       "createProfile": "Create Profile"
     },
     "validation": {
+      "previewTextRequired": "Enter some text for the voice preview.",
       "nameRequired": "Name is required",
       "referenceRequired": "Reference text is required when adding a sample",
       "sampleRequired": "Audio sample is required",
@@ -406,6 +408,9 @@
   },
   "profiles": {
     "card": {
+      "preview": "Preview {{name}}",
+      "previewPreparing": "Preparing voice preview…",
+      "previewUnavailable": "Edit and save this voice to prepare its preview.",
       "noDescription": "No description",
       "designed": "designed",
       "export": "Export profile",
@@ -413,6 +418,14 @@
       "delete": "Delete profile",
       "selectLabel": "{{name}}, {{language}}. Select as voice for generation.",
       "selectLabelSelected": "{{name}}, {{language}}. Selected as voice for generation."
+    },
+    "filters": {
+      "label": "Voice type",
+      "all": "All",
+      "cloned": "Cloned",
+      "designed": "Designed",
+      "preset": "Presets",
+      "empty": "No voices in this category yet."
     },
     "list": {
       "errorLoading": "Error loading profiles: {{message}}",
@@ -698,6 +711,16 @@
       "sourcePlaceholder": "Select source version",
       "apply": "Apply",
       "applying": "Applying…"
+    },
+    "edit": {
+      "title": "Edit text & generate",
+      "text": "Text",
+      "instruct": "Delivery instruction",
+      "submit": "Generate new version",
+      "generating": "Generating…",
+      "failed": "Failed",
+      "retry": "Edit & retry",
+      "active": "Current"
     }
   },
   "generation": {
@@ -717,7 +740,35 @@
       "show": "Show delivery instructions",
       "hide": "Hide delivery instructions",
       "tooltip": "Delivery instructions (tone, emotion, pace)",
-      "placeholder": "Delivery instructions — e.g. Speak slowly with warmth, Authoritative and clear…"
+      "placeholder": "Delivery instructions — e.g. Speak slowly with warmth, Authoritative and clear…",
+      "presets": {
+        "tone": "Tone",
+        "emotion": "Emotion",
+        "pace": "Pace",
+        "none": "Unspecified",
+        "natural": "Natural",
+        "friendly": "Friendly",
+        "gentle": "Gentle",
+        "professional": "Professional",
+        "storytelling": "Storytelling",
+        "whisper": "Whisper",
+        "confident": "Confident",
+        "playful": "Playful",
+        "calm": "Calm",
+        "happy": "Happy",
+        "excited": "Excited",
+        "sad": "Sad",
+        "angry": "Angry",
+        "surprised": "Surprised",
+        "serious": "Serious",
+        "comforting": "Comforting",
+        "steady": "Moderate",
+        "slow": "Slow",
+        "brisk": "Brisk",
+        "pauses": "Clear pauses",
+        "crisp": "Crisp",
+        "expressive": "Expressive"
+      }
     },
     "voiceSelector": {
       "placeholder": "Select a voice…"

@@ -13,8 +13,8 @@ from sqlalchemy.orm import Session
 
 from .. import config, models
 from ..utils.http import safe_content_disposition
-from ..database import VoiceProfile as DBVoiceProfile, get_db
-from ..services import channels, export_import, personality, profiles
+from ..database import VoiceProfile as DBVoiceProfile, ProfileSample as DBProfileSample, get_db
+from ..services import channels, export_import, personality, profiles, voice_preview
 from ..services.profiles import _profile_to_response
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,10 @@ async def create_profile(
 ):
     """Create a new voice profile."""
     try:
-        return await profiles.create_profile(data, db)
+        profile = await profiles.create_profile(data, db)
+        # 档案保存即安排固定试音，播放端不会再触发推理。
+        voice_preview.schedule_preview(profile.id, db)
+        return await profiles.get_profile(profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -59,7 +62,9 @@ async def import_profile(
 
     try:
         profile = await export_import.import_profile_from_zip(content, db)
-        return profile
+        # 导入档案后补齐专属试音，避免依赖导出包中的配音历史。
+        voice_preview.schedule_preview(profile.id, db)
+        return await profiles.get_profile(profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -106,6 +111,12 @@ async def list_preset_voices(engine: str):
         }
     return {"engine": engine, "voices": []}
 
+# 在通配路由之前公开默认文案，新增界面无需复制多语言文案表。
+@router.get("/profiles/preview-defaults")
+async def get_preview_defaults():
+    return voice_preview.TEXT
+
+
 @router.get("/profiles/{profile_id}", response_model=models.VoiceProfileResponse)
 async def get_profile(
     profile_id: str,
@@ -129,7 +140,9 @@ async def update_profile(
         profile = await profiles.update_profile(profile_id, data, db)
         if not profile:
             raise HTTPException(status_code=404, detail="Profile not found")
-        return profile
+        # 更新声音配置后重建试音，防止按钮播放旧配置。
+        voice_preview.schedule_preview(profile.id, db)
+        return await profiles.get_profile(profile.id, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -182,6 +195,8 @@ async def add_profile_sample(
             reference_text,
             db,
         )
+        # 克隆流程在参考样本落盘后才具备生成试音的条件。
+        voice_preview.schedule_preview(profile_id, db)
         return sample
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -206,9 +221,14 @@ async def delete_profile_sample(
     db: Session = Depends(get_db),
 ):
     """Delete a profile sample."""
+    # 样本删除会改变克隆结果，保留所属档案以便刷新固定试音。
+    sample = db.query(DBProfileSample).filter_by(id=sample_id).first()
+    profile_id = sample.profile_id if sample else None
     success = await profiles.delete_profile_sample(sample_id, db)
     if not success:
         raise HTTPException(status_code=404, detail="Sample not found")
+    if profile_id:
+        voice_preview.schedule_preview(profile_id, db)
     return {"message": "Sample deleted successfully"}
 
 
@@ -222,6 +242,8 @@ async def update_profile_sample(
     sample = await profiles.update_profile_sample(sample_id, data.reference_text, db)
     if not sample:
         raise HTTPException(status_code=404, detail="Sample not found")
+    # 修正参考文本也会改变克隆提示，必须同步刷新试音。
+    voice_preview.schedule_preview(sample.profile_id, db)
     return sample
 
 
@@ -360,6 +382,8 @@ async def update_profile_effects(
     db.commit()
     db.refresh(profile)
 
+    # 默认效果属于听感的一部分，更新后同步刷新专属试音。
+    voice_preview.schedule_preview(profile_id, db)
     return _profile_to_response(profile)
 
 
@@ -389,4 +413,27 @@ async def compose_in_character(
         raise HTTPException(status_code=400, detail=str(e))
     return models.PersonalityTextResponse(
         text=result.text, model_size=result.model_size
+    )
+
+
+# 专属试音独立于历史记录：GET 只读取，POST 仅供保存流程或旧档案补齐使用。
+@router.post("/profiles/{profile_id}/preview")
+async def prepare_profile_preview(profile_id: str, db: Session = Depends(get_db)):
+    profile = db.query(DBVoiceProfile).filter_by(id=profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    voice_preview.schedule_preview(profile_id, db)
+    return voice_preview.preview_state(profile, db)
+
+
+@router.get("/profiles/{profile_id}/preview/audio")
+async def get_profile_preview_audio(profile_id: str, db: Session = Depends(get_db)):
+    profile = db.query(DBVoiceProfile).filter_by(id=profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    if voice_preview.preview_state(profile, db)['status'] != 'ready':
+        raise HTTPException(status_code=409, detail="Save the voice to prepare its preview first")
+    return FileResponse(
+        config.get_profiles_dir() / profile_id / 'preview.wav',
+        media_type="audio/wav", headers={"Cache-Control": "no-store"},
     )

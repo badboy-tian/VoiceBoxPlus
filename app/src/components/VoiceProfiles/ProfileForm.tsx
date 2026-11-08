@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Edit2, Mic, Monitor, Music, Sparkles, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -83,6 +83,12 @@ function makeProfileSchema(t: (key: string) => string) {
     description: z.string().max(500).optional(),
     language: z.enum(LANGUAGE_CODES as [LanguageCode, ...LanguageCode[]]),
     personality: z.string().max(2000).optional(),
+    // 与后端相同的长度约束，避免保存后才发现文案不可用。
+    previewText: z
+      .string()
+      .trim()
+      .min(1, t('profileForm.validation.previewTextRequired'))
+      .max(1000),
     sampleFile: z.instanceof(File).optional(),
     referenceText: z.string().max(1000).optional(),
     avatarFile: z.instanceof(File).optional(),
@@ -107,6 +113,7 @@ type ProfileFormValues = {
   description?: string;
   language: LanguageCode;
   personality?: string;
+  previewText: string;
   sampleFile?: File;
   referenceText?: string;
   avatarFile?: File;
@@ -135,6 +142,7 @@ function base64ToFile(base64: string, fileName: string, fileType: string): File 
 }
 
 export function ProfileForm() {
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
   const platform = usePlatform();
   const open = useUIStore((state) => state.profileDialogOpen);
@@ -167,6 +175,15 @@ export function ProfileForm() {
   const [profileEffectsChain, setProfileEffectsChain] = useState<EffectConfig[]>([]);
   const [effectsDirty, setEffectsDirty] = useState(false);
   const [defaultEngine, setDefaultEngine] = useState<string>('');
+  // 生成状态轮询不应覆盖编辑窗口里尚未保存的文案。
+  const initializedEditingProfileId = useRef<string | null>(null);
+  const previousDefaultPreview = useRef<string | undefined>(undefined);
+  const { data: previewDefaults } = useQuery({
+    queryKey: ['voice-preview-defaults'],
+    queryFn: () => apiClient.getPreviewDefaults(),
+    enabled: open,
+    staleTime: Infinity,
+  });
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(makeProfileSchema(t)),
@@ -175,6 +192,7 @@ export function ProfileForm() {
       description: '',
       language: 'en',
       personality: '',
+      previewText: '',
       sampleFile: undefined,
       referenceText: '',
       avatarFile: undefined,
@@ -335,12 +353,20 @@ export function ProfileForm() {
 
   // Restore form state from draft or editing profile
   useEffect(() => {
-    if (editingProfile) {
+    if (!open) {
+      initializedEditingProfileId.current = null;
+      previousDefaultPreview.current = undefined;
+    }
+    if (editingProfile && open) {
+      if (initializedEditingProfileId.current === editingProfile.id) return;
+      initializedEditingProfileId.current = editingProfile.id;
+      previousDefaultPreview.current = undefined;
       form.reset({
         name: editingProfile.name,
         description: editingProfile.description || '',
         language: editingProfile.language as LanguageCode,
         personality: editingProfile.personality || '',
+        previewText: editingProfile.preview_text || '',
         sampleFile: undefined,
         referenceText: undefined,
         avatarFile: undefined,
@@ -348,13 +374,14 @@ export function ProfileForm() {
       setProfileEffectsChain(editingProfile.effects_chain ?? []);
       setEffectsDirty(false);
       setDefaultEngine(editingProfile.default_engine ?? '');
-    } else if (profileFormDraft && open) {
+    } else if (!editingProfileId && profileFormDraft && open) {
       // Restore from draft when opening in create mode
       form.reset({
         name: profileFormDraft.name,
         description: profileFormDraft.description,
         language: profileFormDraft.language as LanguageCode,
         personality: profileFormDraft.personality || '',
+        previewText: profileFormDraft.previewText || '',
         referenceText: profileFormDraft.referenceText,
         sampleFile: undefined,
         avatarFile: undefined,
@@ -384,6 +411,7 @@ export function ProfileForm() {
         description: '',
         language: 'en',
         personality: '',
+        previewText: '',
         sampleFile: undefined,
         referenceText: undefined,
         avatarFile: undefined,
@@ -391,7 +419,23 @@ export function ProfileForm() {
       setSampleMode('record');
       setAvatarPreview(null);
     }
-  }, [editingProfile, profileFormDraft, open, form]);
+  }, [editingProfile, editingProfileId, profileFormDraft, open, form]);
+
+  const previewLanguage = form.watch('language');
+  const loadedEditingId = editingProfile?.id;
+  useEffect(() => {
+    if (!open || !previewDefaults || (editingProfileId && loadedEditingId !== editingProfileId))
+      return;
+    // reset 更新语言后 watch 要到下一次渲染才同步，避免短暂使用上一档案的语言。
+    if (previewLanguage !== form.getValues('language')) return;
+    const nextDefault = previewDefaults[previewLanguage] ?? previewDefaults.en;
+    const current = form.getValues('previewText');
+    // 只替换空值或上一语言的默认值；用户自己写的文案始终保留。
+    if (!current || current === previousDefaultPreview.current) {
+      form.setValue('previewText', nextDefault);
+    }
+    previousDefaultPreview.current = nextDefault;
+  }, [open, previewLanguage, previewDefaults, editingProfileId, loadedEditingId, form]);
 
   useEffect(() => {
     if (
@@ -508,6 +552,8 @@ export function ProfileForm() {
             name: data.name,
             description: data.description,
             language: data.language,
+            // 保存界面显示的文案，服务端据此重新生成专属试听。
+            preview_text: data.previewText.trim(),
             default_engine: defaultEngine || undefined,
             personality: data.personality?.trim() ? data.personality.trim() : undefined,
           },
@@ -571,6 +617,7 @@ export function ProfileForm() {
           name: data.name,
           description: data.description,
           language: data.language,
+          preview_text: data.previewText.trim(),
           voice_type: 'preset' as VoiceType,
           preset_engine: selectedPresetEngine,
           preset_voice_id: selectedPresetVoiceId,
@@ -617,6 +664,7 @@ export function ProfileForm() {
           name: data.name,
           description: data.description,
           language: data.language,
+          preview_text: data.previewText.trim(),
           voice_type: 'designed' as VoiceType,
           design_prompt: trimmedDesign,
           default_engine: DESIGN_ENGINE,
@@ -716,6 +764,7 @@ export function ProfileForm() {
           name: data.name,
           description: data.description,
           language: data.language,
+          preview_text: data.previewText.trim(),
           default_engine: defaultEngine || undefined,
           personality: data.personality?.trim() ? data.personality.trim() : undefined,
         });
@@ -794,6 +843,8 @@ export function ProfileForm() {
         }
       }
 
+      // 样本与效果都保存完后再刷新，避免列表停留在中间步骤的旧试音状态。
+      void queryClient.invalidateQueries({ queryKey: ['profiles'] });
       // Clear draft and reset form on success
       setProfileFormDraft(null);
       form.reset();
@@ -818,7 +869,8 @@ export function ProfileForm() {
         values.description ||
         values.referenceText ||
         values.sampleFile ||
-        designPrompt.trim();
+        designPrompt.trim() ||
+        (values.previewText && values.previewText !== previewDefaults?.[values.language]);
 
       if (hasContent) {
         const draft: ProfileFormDraft = {
@@ -826,6 +878,7 @@ export function ProfileForm() {
           description: values.description || '',
           language: values.language || 'en',
           personality: values.personality || '',
+          previewText: values.previewText || '',
           referenceText: values.referenceText || '',
           sampleMode,
           voiceSource,
@@ -891,6 +944,8 @@ export function ProfileForm() {
                       description: '',
                       language: 'en',
                       personality: '',
+                      // 丢弃草稿后恢复服务端默认文案，新增窗口仍可直接保存。
+                      previewText: previewDefaults?.en ?? '',
                       sampleFile: undefined,
                       referenceText: '',
                       avatarFile: undefined,
@@ -907,7 +962,11 @@ export function ProfileForm() {
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 min-h-0 flex flex-col">
+            {/* 滚动列会截断外描边，编辑框使用内描边保留完整的键盘焦点提示。 */}
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex-1 min-h-0 flex flex-col [&_input:focus-visible]:ring-inset [&_input:focus-visible]:ring-offset-0 [&_textarea:focus-visible]:ring-inset [&_textarea:focus-visible]:ring-offset-0"
+            >
               <div className="grid gap-6 grid-cols-2 flex-1 min-h-0 overflow-hidden">
                 {/* Left column: Sample management */}
                 <div className="space-y-4 border-r pr-6 overflow-y-auto min-h-0">
@@ -1208,9 +1267,7 @@ export function ProfileForm() {
                           <div className="text-sm font-medium text-muted-foreground">
                             {t('profileForm.design.badge')}
                           </div>
-                          <p className="text-sm leading-relaxed">
-                            {editingProfile.design_prompt}
-                          </p>
+                          <p className="text-sm leading-relaxed">{editingProfile.design_prompt}</p>
                           <Badge variant="secondary" className="text-xs">
                             {editingProfile.default_engine}
                           </Badge>
@@ -1325,9 +1382,7 @@ export function ProfileForm() {
                             {...field}
                           />
                         </FormControl>
-                        <FormDescription>
-                          {t('profileForm.fields.personalityHint')}
-                        </FormDescription>
+                        <FormDescription>{t('profileForm.fields.personalityHint')}</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1339,7 +1394,8 @@ export function ProfileForm() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('profileForm.fields.language')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        {/* 使用受控值，让异步加载的编辑档案语言与试听默认文案一致。 */}
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -1353,6 +1409,21 @@ export function ProfileForm() {
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* 试听文案与音色信息共用表单，新增和编辑使用相同保存路径。 */}
+                  <FormField
+                    control={form.control}
+                    name="previewText"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('profileForm.fields.previewText')}</FormLabel>
+                        <FormControl>
+                          <Textarea rows={3} maxLength={1000} {...field} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

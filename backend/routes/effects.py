@@ -38,7 +38,7 @@ async def preview_effects(
         raise HTTPException(status_code=400, detail=error)
 
     all_versions = versions_mod.list_versions(generation_id, db)
-    clean_version = next((v for v in all_versions if v.effects_chain is None), None)
+    clean_version = next((v for v in all_versions if v.effects_chain is None and v.status == "completed"), None)
     source_path = clean_version.audio_path if clean_version else gen.audio_path
     resolved_source_path = config.resolve_storage_path(source_path)
     if resolved_source_path is None or not resolved_source_path.exists():
@@ -182,11 +182,11 @@ async def apply_effects_to_generation(
     source_version_id = data.source_version_id
     if source_version_id:
         source_version = next((v for v in all_versions if v.id == source_version_id), None)
-        if not source_version:
+        if not source_version or source_version.status != "completed":
             raise HTTPException(status_code=404, detail="Source version not found")
         source_path = source_version.audio_path
     else:
-        clean_version = next((v for v in all_versions if v.effects_chain is None), None)
+        clean_version = next((v for v in all_versions if v.effects_chain is None and v.status == "completed"), None)
         if not clean_version:
             source_path = gen.audio_path
         else:
@@ -235,7 +235,11 @@ async def set_default_version(
     if not version or version.generation_id != generation_id:
         raise HTTPException(status_code=404, detail="Version not found")
 
-    result = versions_mod.set_default_version(version_id, db)
+    # 草稿没有音频，返回可处理的冲突而不是服务器异常。
+    try:
+        result = versions_mod.set_default_version(version_id, db)
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
     if not result:
         raise HTTPException(status_code=404, detail="Version not found")
     return result

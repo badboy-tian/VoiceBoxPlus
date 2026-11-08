@@ -199,6 +199,11 @@ async def regenerate_generation(generation_id: str, db: Session = Depends(get_db
     if (gen.status or "completed") != "completed":
         raise HTTPException(status_code=400, detail="Generation must be completed to regenerate")
 
+    # 同一记录的编辑任务与旧重生成不能交错覆盖默认版本。
+    from ..database import GenerationVersion
+    if db.query(GenerationVersion).filter_by(generation_id=generation_id, status="generating").first():
+        raise HTTPException(409, "An edited version is already generating")
+
     gen.status = "generating"
     gen.error = None
     db.commit()
@@ -485,3 +490,10 @@ async def import_audio(
         model_size=None,
         source="import",
     )
+
+
+# 编辑另存为版本，不能覆写仍可试听的原台词与音频。
+@router.post('/generate/{generation_id}/edit', response_model=models.GenerationVersionResponse)
+async def edit_generation(generation_id: str, data: models.EditGenerationRequest, db: Session = Depends(get_db)):
+    from ..services.revisions import start_revision
+    return start_revision(generation_id, data, db)

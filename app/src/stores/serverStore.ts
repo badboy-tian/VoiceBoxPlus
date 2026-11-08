@@ -27,8 +27,11 @@ function invalidateAllServerData() {
   queryClient.invalidateQueries();
 }
 
+// 与桌面端服务使用相同端口，避免连接到旧版 Voicebox。
+const LOCAL_SERVER_PORT = '17594';
+
 export function getDefaultServerUrl(): string {
-  const fallback = 'http://127.0.0.1:17493';
+  const fallback = `http://127.0.0.1:${LOCAL_SERVER_PORT}`;
 
   if (!import.meta.env.PROD || typeof window === 'undefined') {
     return fallback;
@@ -50,7 +53,7 @@ export function isLoopbackVoiceboxServerUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
     return (
-      parsed.port === '17493' &&
+      parsed.port === LOCAL_SERVER_PORT &&
       (parsed.hostname === '127.0.0.1' ||
         parsed.hostname === 'localhost' ||
         parsed.hostname === '[::1]' ||

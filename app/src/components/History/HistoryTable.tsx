@@ -6,6 +6,7 @@ import {
   FileArchive,
   Loader2,
   MoreHorizontal,
+  Pencil,
   Play,
   RotateCcw,
   Square,
@@ -15,7 +16,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
 import { AudioBars } from '@/components/AudioBars';
 import { EffectsChainEditor } from '@/components/Effects/EffectsChainEditor';
 import { Button } from '@/components/ui/button';
@@ -62,6 +62,7 @@ import { cn } from '@/lib/utils/cn';
 import { formatDate, formatDuration, formatEngineName } from '@/lib/utils/format';
 import { useGenerationStore } from '@/stores/generationStore';
 import { usePlayerStore } from '@/stores/playerStore';
+import { EditGenerationDialog } from './EditGenerationDialog';
 
 export function HistoryTable() {
   const { t } = useTranslation();
@@ -87,6 +88,11 @@ export function HistoryTable() {
   const [effectsChain, setEffectsChain] = useState<EffectConfig[]>([]);
   const [applyingEffects, setApplyingEffects] = useState(false);
   const [expandedVersionsId, setExpandedVersionsId] = useState<string | null>(null);
+  // 草稿仅在对话框内编辑，已完成历史不会被直接改写。
+  const [editTarget, setEditTarget] = useState<{
+    generation: HistoryResponse;
+    draft?: GenerationVersionResponse;
+  } | null>(null);
   const limit = 20;
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -143,11 +149,42 @@ export function HistoryTable() {
         setAllHistory((prev) => {
           const existingIds = new Set(prev.map((item) => item.id));
           const newItems = historyData.items.filter((item) => !existingIds.has(item.id));
-          return [...prev, ...newItems];
+          // 分页刷新也更新已有记录，确保版本与台词不会停留在旧缓存。
+          const updates = new Map(historyData.items.map((item) => [item.id, item]));
+          return [...prev.map((item) => updates.get(item.id) ?? item), ...newItems];
         });
       }
     }
   }, [historyData, page]);
+
+  // 直接刷新正在编辑的记录，分页到其他位置也不会漏掉任务完成状态。
+  const pendingRevisionIds = allHistory
+    .filter((item) => item.versions?.some((v) => v.status === 'generating'))
+    .map((item) => item.id)
+    .join(',');
+  useEffect(() => {
+    if (!pendingRevisionIds) return;
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      const results = await Promise.allSettled(
+        pendingRevisionIds.split(',').map((id) => apiClient.getGeneration(id)),
+      );
+      if (disposed) return;
+      const updates = new Map(
+        results.flatMap((result) =>
+          result.status === 'fulfilled' ? [[result.value.id, result.value] as const] : [],
+        ),
+      );
+      setAllHistory((items) => items.map((item) => updates.get(item.id) ?? item));
+      timer = setTimeout(poll, 2000);
+    };
+    timer = setTimeout(poll, 1000);
+    return () => {
+      disposed = true;
+      clearTimeout(timer);
+    };
+  }, [pendingRevisionIds]);
 
   // Reset to page 0 when deletions, imports, or generation completions occur
   const pendingCount = useGenerationStore((state) => state.pendingGenerationIds.size);
@@ -209,14 +246,12 @@ export function HistoryTable() {
   }, []);
 
   const handlePlay = (audioId: string, text: string, profileId: string) => {
-    // If clicking the same audio, restart it from the beginning
-    if (currentAudioId === audioId) {
-      restartCurrentAudio();
-    } else {
-      // Otherwise, load the new audio and auto-play it
-      const audioUrl = apiClient.getAudioUrl(audioId);
-      setAudioWithAutoPlay(audioUrl, audioId, profileId, text.substring(0, 50));
-    }
+    // 使用不可变版本地址，避免同一历史 ID 缓存到切换前的声音。
+    const gen = allHistory.find((item) => item.id === audioId);
+    const version = gen?.versions?.find((item) => item.is_default);
+    const url = version ? apiClient.getVersionAudioUrl(version.id) : apiClient.getAudioUrl(audioId);
+    if (currentAudioId === audioId && audioUrl === url) restartCurrentAudio();
+    else setAudioWithAutoPlay(url, audioId, profileId, text.substring(0, 50));
   };
 
   const handleDownloadAudio = (
@@ -360,6 +395,9 @@ export function HistoryTable() {
   const handleSwitchVersion = async (generationId: string, versionId: string) => {
     try {
       await apiClient.setDefaultVersion(generationId, versionId);
+      // 当前分页可能不包含这条记录，因此同时更新本地展开列表。
+      const updated = await apiClient.getGeneration(generationId);
+      setAllHistory((items) => items.map((item) => (item.id === generationId ? updated : item)));
       queryClient.invalidateQueries({ queryKey: ['history'] });
     } catch (error) {
       toast({
@@ -478,6 +516,7 @@ export function HistoryTable() {
               const isGenerating = isInProgress;
               const isFailed = gen.status === 'failed';
               const isPlayable = !isGenerating && !isFailed;
+              const isEditing = gen.versions?.some((v) => v.status === 'generating');
               const hasVersions = gen.versions && gen.versions.length > 1;
               const isVersionsExpanded = expandedVersionsId === gen.id;
               const isCancelling =
@@ -490,9 +529,11 @@ export function HistoryTable() {
                     isCurrentlyPlaying && 'bg-muted/70',
                   )}
                 >
-                  {/* Main row */}
+                  {/* 行内包含菜单和收藏按钮，不能嵌套在原生 button 内。 */}
+                  {/* biome-ignore lint/a11y/useSemanticElements: 保留行内独立按钮与文本选择能力 */}
                   <div
-                    role={isPlayable ? 'button' : undefined}
+                    role="button"
+                    aria-disabled={!isPlayable}
                     tabIndex={isPlayable ? 0 : undefined}
                     className={cn(
                       'flex items-stretch gap-4 h-26 p-3 outline-none',
@@ -572,8 +613,11 @@ export function HistoryTable() {
                       />
                     </div>
 
-                    {/* Far right - Actions */}
+                    {/* 操作区阻止冒泡，键盘选择版本时不应额外播放整行。 */}
                     <div
+                      role="toolbar"
+                      aria-label={t('history.edit.title')}
+                      onKeyDown={(e) => e.stopPropagation()}
                       className="shrink-0 flex flex-col justify-center items-center gap-0.5"
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
@@ -690,7 +734,18 @@ export function HistoryTable() {
                               <Wand2 className="mr-2 h-4 w-4" />
                               {t('history.actions.applyEffects')}
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleRegenerate(gen.id)}>
+                            {/* 编辑入口保留原声，生成完成后才选中新版本。 */}
+                            <DropdownMenuItem
+                              disabled={isEditing}
+                              onClick={() => setEditTarget({ generation: gen })}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              {t('history.edit.title')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={isEditing}
+                              onClick={() => handleRegenerate(gen.id)}
+                            >
                               <RotateCcw className="mr-2 h-4 w-4" />
                               {t('history.actions.regenerate')}
                             </DropdownMenuItem>
@@ -720,46 +775,60 @@ export function HistoryTable() {
                         <div className="border-t border-border/50">
                           <div className="divide-y divide-border/40">
                             {gen.versions.map((v) => {
-                              // Show source provenance when effects were applied to a non-clean version
-                              const sourceVersion = v.source_version_id
-                                ? gen.versions?.find((sv) => sv.id === v.source_version_id)
-                                : null;
-                              const showSource =
-                                sourceVersion &&
-                                sourceVersion.effects_chain &&
-                                sourceVersion.effects_chain.length > 0;
-
+                              // 未完成版本只能查看草稿或重试，不提供无效播放入口。
+                              const ready = !v.status || v.status === 'completed';
                               return (
-                                <button
-                                  key={v.id}
-                                  type="button"
-                                  className="flex items-center gap-2 w-full h-9 px-3 text-left hover:bg-muted/50 transition-colors"
-                                  onClick={() => {
-                                    handlePlayVersion(gen.id, v.id, gen.text, gen.profile_id);
-                                    if (!v.is_default) {
-                                      handleSwitchVersion(gen.id, v.id);
-                                    }
-                                  }}
-                                >
-                                  <AudioLines className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                  <span className="truncate text-xs font-medium">{v.label}</span>
-                                  {v.effects_chain && v.effects_chain.length > 0 && (
-                                    <span className="text-[10px] text-muted-foreground truncate">
-                                      {v.effects_chain.map((e) => e.type).join(' → ')}
+                                <div key={v.id} className="flex items-center gap-2 px-3 py-2">
+                                  <button
+                                    type="button"
+                                    disabled={!ready}
+                                    className="flex min-w-0 flex-1 items-center gap-2 text-left disabled:opacity-60"
+                                    onClick={() => {
+                                      handlePlayVersion(
+                                        gen.id,
+                                        v.id,
+                                        v.text ?? gen.text,
+                                        gen.profile_id,
+                                      );
+                                      if (!v.is_default) handleSwitchVersion(gen.id, v.id);
+                                    }}
+                                  >
+                                    {v.status === 'generating' ? (
+                                      <Loader2 className="size-3 shrink-0 animate-spin" />
+                                    ) : (
+                                      <AudioLines className="size-3 shrink-0 text-muted-foreground" />
+                                    )}
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block truncate text-xs font-medium">
+                                        {v.label}
+                                        {v.is_default ? ` · ${t('history.edit.active')}` : ''}
+                                      </span>
+                                      <span className="block truncate text-xs text-muted-foreground">
+                                        {v.text ?? gen.text}
+                                      </span>
                                     </span>
+                                    {!ready && (
+                                      <span className="text-xs">
+                                        {t(
+                                          v.status === 'failed'
+                                            ? 'history.edit.failed'
+                                            : 'history.edit.generating',
+                                        )}
+                                      </span>
+                                    )}
+                                  </button>
+                                  {v.status === 'failed' && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      disabled={isEditing}
+                                      title={v.error ?? undefined}
+                                      onClick={() => setEditTarget({ generation: gen, draft: v })}
+                                    >
+                                      {t('history.edit.retry')}
+                                    </Button>
                                   )}
-                                  {showSource && (
-                                    <span className="text-[10px] text-muted-foreground/60 truncate">
-                                      from {sourceVersion.label}
-                                    </span>
-                                  )}
-                                  <span className="flex-1" />
-                                  {v.is_default && (
-                                    <span className="text-[10px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-full">
-                                      active
-                                    </span>
-                                  )}
-                                </button>
+                                </div>
                               );
                             })}
                           </div>
@@ -788,6 +857,25 @@ export function HistoryTable() {
         </>
       )}
 
+      {editTarget && (
+        <EditGenerationDialog
+          key={editTarget.draft?.id ?? editTarget.generation.id}
+          generation={editTarget.generation}
+          draft={editTarget.draft}
+          onClose={() => setEditTarget(null)}
+          onStarted={(version) => {
+            // 立即插入草稿以启动轮询，原音频继续保持可播放状态。
+            setAllHistory((items) =>
+              items.map((item) =>
+                item.id === version.generation_id
+                  ? { ...item, versions: [...(item.versions ?? []), version] }
+                  : item,
+              ),
+            );
+            setExpandedVersionsId(version.generation_id);
+          }}
+        />
+      )}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -883,27 +971,33 @@ export function HistoryTable() {
           </DialogHeader>
           {effectsTargetVersions.length > 1 && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
+              {/* 关联原有选择器，确保辅助技术读出来源字段。 */}
+              <label
+                htmlFor="effects-source-version"
+                className="text-xs font-medium text-muted-foreground"
+              >
                 {t('history.effectsDialog.sourceLabel')}
               </label>
               <Select
                 value={effectsSourceVersionId ?? ''}
                 onValueChange={(val) => setEffectsSourceVersionId(val || null)}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger id="effects-source-version" className="h-8 text-xs">
                   <SelectValue placeholder={t('history.effectsDialog.sourcePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {effectsTargetVersions.map((v) => (
-                    <SelectItem key={v.id} value={v.id} className="text-xs">
-                      {v.label}
-                      {v.effects_chain && v.effects_chain.length > 0 && (
-                        <span className="text-muted-foreground ml-1.5">
-                          ({v.effects_chain.map((e) => e.type).join(' + ')})
-                        </span>
-                      )}
-                    </SelectItem>
-                  ))}
+                  {effectsTargetVersions
+                    .filter((v) => !v.status || v.status === 'completed')
+                    .map((v) => (
+                      <SelectItem key={v.id} value={v.id} className="text-xs">
+                        {v.label}
+                        {v.effects_chain && v.effects_chain.length > 0 && (
+                          <span className="text-muted-foreground ml-1.5">
+                            ({v.effects_chain.map((e) => e.type).join(' + ')})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
