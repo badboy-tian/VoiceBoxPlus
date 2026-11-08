@@ -8,6 +8,7 @@ const Progress = React.forwardRef<
 >(({ className, value, ...props }, ref) => (
   <ProgressPrimitive.Root
     ref={ref}
+    value={value /* 同步可访问进度，避免读屏把 0% 误报为默认中间值。 */}
     className={cn('relative h-4 w-full overflow-hidden rounded-full bg-secondary', className)}
     {...props}
   >

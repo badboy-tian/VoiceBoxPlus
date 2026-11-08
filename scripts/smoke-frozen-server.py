@@ -20,7 +20,7 @@ with tempfile.TemporaryDirectory() as directory:
     details = report.read_text() if report.exists() else 'Runtime report was not written'
     print(details)
     assert checked.returncode == 0, details
-    with open(Path(directory) / 'server.log', 'w+') as log:
+    with open(Path(directory) / 'server.log', 'w+', encoding='utf-8', errors='replace') as log:
         process = subprocess.Popen([str(binary), '--host', '127.0.0.1', '--port', str(port), '--data-dir', directory], stdout=log, stderr=log)
         try:
             for _ in range(180):
@@ -44,7 +44,11 @@ with tempfile.TemporaryDirectory() as directory:
                     assert any(item['model_name'] == 'qwen-voice-design-1.7B' for item in payload['models'])
             print('Frozen backend: health, empty database, and VoiceDesign registry verified')
         finally:
-            process.terminate()
+            # Windows 的 onefile 启动器另有子进程，只终止父进程会留下日志句柄和后台服务。
+            if os.name == 'nt':
+                subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], check=False)
+            else:
+                process.terminate()
             try:
                 process.wait(timeout=30)
             except subprocess.TimeoutExpired:

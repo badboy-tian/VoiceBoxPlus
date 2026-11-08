@@ -54,6 +54,9 @@ export function useModelDownloadToast({
 
     console.log('[useModelDownloadToast] Creating toast and EventSource for:', modelName);
 
+    // 只有收到终态的提示才保留；快速失败导致订阅卸载时不能留下永久转圈。
+    let receivedTerminal = false;
+
     // Create initial toast
     const toastResult = toast({
       title: displayName,
@@ -141,6 +144,7 @@ export function useModelDownloadToast({
           const isError = progress.status === 'error';
 
           if (isComplete || isError) {
+            receivedTerminal = true;
             console.log('[useModelDownloadToast] Download finished:', {
               isComplete,
               isError,
@@ -179,6 +183,7 @@ export function useModelDownloadToast({
     };
 
     eventSource.onerror = (error) => {
+      receivedTerminal = true;
       console.error('[useModelDownloadToast] SSE error for:', modelName, error);
       console.log('[useModelDownloadToast] EventSource readyState:', eventSource.readyState);
       eventSource.close();
@@ -206,7 +211,8 @@ export function useModelDownloadToast({
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
-      // Note: We don't dismiss the toast here as it might still be showing completion state
+      // 保留成功或失败提示的短暂展示，清理失去订阅的等待提示。
+      if (!receivedTerminal) toastResult.dismiss();
     };
   }, [enabled, serverUrl, modelName, displayName, toast, formatBytes, onComplete, onError]);
 
