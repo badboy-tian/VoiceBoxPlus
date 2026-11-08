@@ -15,6 +15,11 @@ with socket.socket() as sock:
     sock.bind(('127.0.0.1', 0))
     port = sock.getsockname()[1]
 with tempfile.TemporaryDirectory() as directory:
+    report = Path(directory) / 'runtime.json'
+    checked = subprocess.run([str(binary), '--check-runtime', str(report)], timeout=180)
+    details = report.read_text() if report.exists() else 'Runtime report was not written'
+    print(details)
+    assert checked.returncode == 0, details
     with open(Path(directory) / 'server.log', 'w+') as log:
         process = subprocess.Popen([str(binary), '--host', '127.0.0.1', '--port', str(port), '--data-dir', directory], stdout=log, stderr=log)
         try:

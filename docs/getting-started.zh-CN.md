@@ -33,6 +33,8 @@
 
 首次下载需要能连接 Hugging Face。若下载失败，先检查磁盘空间和网络连接，在「模型」页面重试；可配置自定义模型缓存目录。模型缓存完整后，本地配音不需要云端语音 API。
 
+![VoiceDesign model and presenter template guide](../.github/assets/voiceboxplus/quick-start.png)
+
 ## 3. 从主播模板开始
 
 「入门与模板」内提供 16 份中文模板，覆盖男女主播、爷爷奶奶、小孩、中学生、大学生、新闻播报、有声书、童话与商品口播。

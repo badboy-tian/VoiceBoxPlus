@@ -81,14 +81,13 @@ export function MainEditor() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-6 h-full min-h-0 overflow-hidden relative">
       <div className="flex flex-col min-h-0 overflow-hidden relative lg:overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-background to-transparent z-0 pointer-events-none" />
-
-        <div className="absolute top-0 left-0 right-0 z-10">
-          <div className="flex items-center justify-between mb-4 px-1">
+        {/* 标题和工具区参与布局，窄窗口换行后也不会压住筛选栏。 */}
+        <div className="shrink-0 bg-background z-10">
+          <div className="flex flex-col gap-3 mb-4 px-1">
             {/* 仅更换品牌显示名，保留原有标识以兼容已保存的数据。 */}
             <h2 className="text-2xl font-bold">VoiceBoxPlus</h2>
             {/* 新手入口始终可见，已有用户也能按需添加模板。 */}
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="flex flex-wrap gap-2">
               <GettingStarted />
               <Button variant="outline" onClick={handleImportClick}>
                 <Upload className="mr-2 h-4 w-4" />
@@ -111,7 +110,7 @@ export function MainEditor() {
 
         <div
           ref={scrollRef}
-          className={cn('flex-1 min-h-0 overflow-y-auto pt-14 pb-4', isPlayerVisible && 'lg:pb-32')}
+          className={cn('flex-1 min-h-0 overflow-y-auto pb-4', isPlayerVisible && 'lg:pb-32')}
         >
           <div className="flex flex-col gap-6">
             <div className="shrink-0 flex flex-col">

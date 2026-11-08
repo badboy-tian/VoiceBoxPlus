@@ -92,7 +92,16 @@ jobs:
           bun run --cwd app typecheck
           bun test scripts/instruct-presets.test.ts
           python -m pytest backend/tests/test_revisions.py backend/tests/test_voice_preview.py -q
+      # 只缓存已通过冒烟测试的后端，修复前端或打包步骤时无需重复冻结大运行时。
+      - uses: actions/cache/restore@v4
+        id: sidecars
+        with:
+          path: |
+            backend/dist
+            tauri/src-tauri/binaries
+          key: sidecars-${{ matrix.target }}-${{ hashFiles('backend/**/*.py', 'backend/requirements*.txt', 'scripts/stage-sidecars.py') }}
       - name: Freeze both sidecars
+        if: steps.sidecars.outputs.cache-hit != 'true'
         shell: bash
         run: |
           python backend/build_binary.py
@@ -100,6 +109,13 @@ jobs:
           python scripts/stage-sidecars.py '${{ matrix.target }}'
       - name: Smoke test frozen backend
         run: python scripts/smoke-frozen-server.py
+      - uses: actions/cache/save@v4
+        if: steps.sidecars.outputs.cache-hit != 'true'
+        with:
+          path: |
+            backend/dist
+            tauri/src-tauri/binaries
+          key: ${{ steps.sidecars.outputs.cache-primary-key }}
       - name: Build installer
         working-directory: tauri
         shell: bash

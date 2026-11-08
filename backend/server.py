@@ -114,6 +114,23 @@ logger.info(f"Executable: {sys.executable}")
 logger.info(f"Arguments: {sys.argv}")
 logger.info("=" * 60)
 
+# 发布自检只导入推理依赖，不下载权重；报告文件也适用于无控制台的 Windows 包。
+if "--check-runtime" in sys.argv:
+    import json
+    import traceback
+    from pathlib import Path
+
+    report = Path(sys.argv[sys.argv.index("--check-runtime") + 1])
+    try:
+        from qwen_tts import Qwen3TTSModel
+        from backend.services import voice_preview, revisions
+        assert callable(Qwen3TTSModel.generate_voice_design)
+        report.write_text(json.dumps({"ok": True, "voice_design": True}))
+    except Exception:
+        report.write_text(json.dumps({"ok": False, "error": traceback.format_exc()}))
+        sys.exit(1)
+    sys.exit(0)
+
 try:
     logger.info("Importing argparse...")
     import argparse

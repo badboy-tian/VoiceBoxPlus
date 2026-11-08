@@ -33,6 +33,8 @@ For text-based voice design, you need only `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
 
 The first download needs access to Hugging Face. If it fails, check network access and free disk space, then retry. Once the model cache is complete, speech generation runs locally without a cloud speech API.
 
+![VoiceDesign model and presenter template guide](../.github/assets/voiceboxplus/quick-start.png)
+
 ## 3. Try a presenter template
 
 Quick start includes 16 Chinese voice descriptions: adult men and women, seniors, children, students, news presenters, audiobook narrators, storytellers, and product presenters.
