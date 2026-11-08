@@ -54,7 +54,12 @@ export function useRestoreActiveTasks() {
         seenDownloadsRef.current.add(download.model_name);
       }
 
-      setActiveDownloads(tasks.downloads);
+      // 接口也返回保留的失败任务；仅恢复进行中的下载，避免订阅已结束的事件流后永久等待。
+      setActiveDownloads(
+        tasks.downloads.filter((download) =>
+          ['downloading', 'extracting', 'pending'].includes(download.status),
+        ),
+      );
     } catch (error) {
       // Silently fail - server might be temporarily unavailable
       console.debug('Failed to fetch active tasks:', error);
