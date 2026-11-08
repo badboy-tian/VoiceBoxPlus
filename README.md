@@ -40,8 +40,8 @@ The changes in this fork have been tested locally on **macOS with Apple Silicon*
 Prerequisites: Python 3.12, Bun, Rust, Just, and the [Tauri system prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```bash
-git clone https://github.com/badboy-tian/voicebox.git
-cd voicebox
+git clone https://github.com/badboy-tian/VoiceBoxPlus.git
+cd VoiceBoxPlus
 just setup
 ```
 

@@ -40,8 +40,8 @@ VoiceBoxPlus 基于 Jamie Pine 与社区开发的 **[Voicebox](https://github.co
 准备 Python 3.12、Bun、Rust、Just 和 [Tauri 平台依赖](https://v2.tauri.app/start/prerequisites/)。
 
 ```bash
-git clone https://github.com/badboy-tian/voicebox.git
-cd voicebox
+git clone https://github.com/badboy-tian/VoiceBoxPlus.git
+cd VoiceBoxPlus
 just setup
 ```
 

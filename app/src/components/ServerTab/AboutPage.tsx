@@ -111,7 +111,7 @@ export function AboutPage() {
                 <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
               </a>
               <a
-                href="https://github.com/badboy-tian/voicebox"
+                href="https://github.com/badboy-tian/VoiceBoxPlus"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group inline-flex items-center gap-2 rounded-lg border border-border/60 px-4 py-2 text-sm transition-colors hover:bg-muted/50"
